@@ -35,6 +35,11 @@ class MultiAgentEnv(gym.Env):
         self.shared_reward = world.collaborative if hasattr(world, 'collaborative') else False
         self.time = 0
 
+        print('discrete action space = {}'.format(self.discrete_action_space))
+        print('discrete action input = {}'.format(self.discrete_action_input))
+        print('force discrete action = {}'.format(self.force_discrete_action))
+
+
         # configure spaces
         self.action_space = []
         self.observation_space = []
@@ -156,6 +161,7 @@ class MultiAgentEnv(gym.Env):
         else:
             action = [action]
 
+        # TODO: ADD BOUNDS TO WORLD
         if agent.movable:
             # physical action
             if self.discrete_action_input:

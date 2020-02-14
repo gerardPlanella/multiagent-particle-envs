@@ -78,6 +78,7 @@ class Agent(Entity):
         # script behavior to execute
         self.action_callback = None
 
+
 # multi-agent world
 class World(object):
     def __init__(self):
@@ -97,6 +98,8 @@ class World(object):
         # contact response parameters
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
+
+        self.world_bounds = 0.9
 
     # return all entities in the world
     @property
@@ -133,11 +136,26 @@ class World(object):
     # gather agent action forces
     def apply_action_force(self, p_force):
         # set applied forces
-        for i,agent in enumerate(self.agents):
-            if agent.movable:
+        for i, agent in enumerate(self.agents):
+            if agent.movable and self.valid_move_planned(agent):
                 noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
-                p_force[i] = agent.action.u + noise                
+                p_force[i] = agent.action.u + noise
+
         return p_force
+
+    def valid_move_planned(self, agent):
+        valid = True
+
+        if agent.state.p_pos[0] < -self.world_bounds and agent.action.u[0] < 0:
+            valid = False
+        elif agent.state.p_pos[0] > self.world_bounds and agent.action.u[0] > 0:
+            valid = False
+        elif agent.state.p_pos[1] < -self.world_bounds and agent.action.u[1] < 0:
+            valid = False
+        elif agent.state.p_pos[1] > self.world_bounds and agent.action.u[1] > 0:
+            valid = False
+
+        return valid
 
     # gather physical forces acting on entities
     def apply_environment_force(self, p_force):
