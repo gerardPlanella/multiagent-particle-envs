@@ -4,7 +4,7 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self):
+    def make_world(self, bounded=True):
         world = World()
         # set any world properties first
         world.dim_c = 2
@@ -32,12 +32,18 @@ class Scenario(BaseScenario):
             landmark.size = 0.2
             landmark.boundary = False
 
-        # add border walls
-        left_wall = Wall(orient='V', axis_pos=1.25, endpoints=(-2.0, 2.0), width=0.5)
-        right_wall = Wall(orient='V', axis_pos=-1.25, endpoints=(-2.0, 2.0), width=0.5)
-        top_wall = Wall(axis_pos=1.25, endpoints=(-2.0, 2.0), width=0.5)
-        bot_wall = Wall(axis_pos=-1.25, endpoints=(-2.0, 2.0), width=0.5)
-        world.walls = [left_wall, top_wall, bot_wall, right_wall]
+        if bounded:
+            world.bounded = True
+
+            # add border walls
+            left_wall = Wall(orient='V', axis_pos=2.25, endpoints=(-0.75, 2.75), width=0.5)
+            right_wall = Wall(orient='V', axis_pos=-0.25, endpoints=(-0.75, 2.75), width=0.5)
+            top_wall = Wall(axis_pos=2.25, endpoints=(-0.75, 2.75), width=0.5)
+            bot_wall = Wall(axis_pos=-0.25, endpoints=(-0.75, 2.75), width=0.5)
+            world.walls = [left_wall, top_wall, bot_wall, right_wall]
+        else:
+            world.bounded = False
+            
 
         # make initial conditions
         self.reset_world(world)
@@ -53,12 +59,14 @@ class Scenario(BaseScenario):
             landmark.color = np.array([0.25, 0.25, 0.25])
         # set random initial states
         for agent in world.agents:
-            agent.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
+            # agent.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
+            agent.state.p_pos = np.random.uniform(0, 2, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
+                # landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
+                landmark.state.p_pos = np.random.uniform(0.1, 1.9, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
 
 
@@ -108,6 +116,20 @@ class Scenario(BaseScenario):
                     rew -= 10
 
         # agents are penalized for exiting the screen, so that they can be caught by the adversaries
+        # def bound(x):
+        #     if x < 0.9:
+        #         return 0
+        #     if x < 1.0:
+        #         return (x - 0.9) * 10
+        #     return min(np.exp(2 * x - 2), 10)
+        # for p in range(world.dim_p):
+        #     x = abs(agent.state.p_pos[p])
+        #     rew -= bound(x)
+
+        # return rew
+
+        # TODO: Redefine loss for leaving the world
+        # TODO: bounds no longer valid for world coordinates
         def bound(x):
             if x < 0.9:
                 return 0
@@ -135,24 +157,6 @@ class Scenario(BaseScenario):
                     if self.is_collision(ag, adv):
                         rew += 10
         return rew
-
-    # def observation(self, agent, world):
-    #     # get positions of all entities in this agent's reference frame
-    #     entity_pos = []
-    #     for entity in world.landmarks:
-    #         if not entity.boundary:
-    #             entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-    #     # communication of all other agents
-    #     comm = []
-    #     other_pos = []
-    #     other_vel = []
-    #     for other in world.agents:
-    #         if other is agent: continue
-    #         comm.append(other.state.c)
-    #         other_pos.append(other.state.p_pos - agent.state.p_pos)
-    #         if not other.adversary:
-    #             other_vel.append(other.state.p_vel)
-    #     return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
 
 
     def observation(self, agent, world):

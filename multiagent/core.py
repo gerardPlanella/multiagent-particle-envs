@@ -117,7 +117,8 @@ class World(object):
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
 
-        self.world_bounds = 0.9
+        self.world_size = 2.0
+        self.bounded = None
 
     # return all entities in the world
     @property
@@ -155,26 +156,11 @@ class World(object):
     def apply_action_force(self, p_force):
         # set applied forces
         for i, agent in enumerate(self.agents):
-            # if agent.movable and self.valid_move_planned(agent):
             if agent.movable:
                 noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
                 p_force[i] = agent.action.u + noise
 
         return p_force
-
-    def valid_move_planned(self, agent):
-        valid = True
-
-        if agent.state.p_pos[0] < -self.world_bounds and agent.action.u[0] < 0:
-            valid = False
-        elif agent.state.p_pos[0] > self.world_bounds and agent.action.u[0] > 0:
-            valid = False
-        elif agent.state.p_pos[1] < -self.world_bounds and agent.action.u[1] < 0:
-            valid = False
-        elif agent.state.p_pos[1] > self.world_bounds and agent.action.u[1] > 0:
-            valid = False
-
-        return valid
 
     # gather physical forces acting on entities
     def apply_environment_force(self, p_force):
@@ -213,7 +199,13 @@ class World(object):
                 if speed > entity.max_speed:
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
+            
+            # TODO: ADD TAURUS MATH HERE
             entity.state.p_pos += entity.state.p_vel * self.dt
+
+            if not self.bounded:
+                entity.state.p_pos %= self.world_size
+
 
     def update_agent_state(self, agent):
         # set communication state (directly for now)
@@ -275,8 +267,6 @@ class World(object):
         k = self.contact_margin
         penetration = np.logaddexp(0, -(dist - dist_min)/k)*k
 
-        print(entity.adversary)
-        print('penetration = {}'.format(penetration))
         force_mag = self.contact_force * delta_pos / dist * penetration
         force = np.zeros(2)
         force[perp_dim] = np.cos(theta) * force_mag
