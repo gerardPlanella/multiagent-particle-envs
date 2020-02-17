@@ -35,10 +35,9 @@ class MultiAgentEnv(gym.Env):
         self.shared_reward = world.collaborative if hasattr(world, 'collaborative') else False
         self.time = 0
 
-        print('discrete action space = {}'.format(self.discrete_action_space))
-        print('discrete action input = {}'.format(self.discrete_action_input))
-        print('force discrete action = {}'.format(self.force_discrete_action))
-
+        # print('discrete action space = {}'.format(self.discrete_action_space))
+        # print('discrete action input = {}'.format(self.discrete_action_input))
+        # print('force discrete action = {}'.format(self.force_discrete_action))
 
         # configure spaces
         self.action_space = []
@@ -243,6 +242,20 @@ class MultiAgentEnv(gym.Env):
                 geom.add_attr(xform)
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
+            
+            for wall in self.world.walls:
+                corners = ((wall.axis_pos - 0.5 * wall.width, wall.endpoints[0]),
+                           (wall.axis_pos - 0.5 * wall.width, wall.endpoints[1]),
+                           (wall.axis_pos + 0.5 * wall.width, wall.endpoints[1]),
+                           (wall.axis_pos + 0.5 * wall.width, wall.endpoints[0]))
+                if wall.orient == 'H':
+                    corners = tuple(c[::-1] for c in corners)
+                geom = rendering.make_polygon(corners)
+                if wall.hard:
+                    geom.set_color(*wall.color)
+                else:
+                    geom.set_color(*wall.color, alpha=0.5)
+                self.render_geoms.append(geom)
 
             # add geoms to viewer
             for viewer in self.viewers:

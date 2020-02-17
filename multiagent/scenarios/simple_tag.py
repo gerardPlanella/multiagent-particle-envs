@@ -1,5 +1,5 @@
 import numpy as np
-from multiagent.core import World, Agent, Landmark
+from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 
 
@@ -31,6 +31,14 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.2
             landmark.boundary = False
+
+        # add border walls
+        left_wall = Wall(orient='V', axis_pos=1.25, endpoints=(-2.0, 2.0), width=0.5)
+        right_wall = Wall(orient='V', axis_pos=-1.25, endpoints=(-2.0, 2.0), width=0.5)
+        top_wall = Wall(axis_pos=1.25, endpoints=(-2.0, 2.0), width=0.5)
+        bot_wall = Wall(axis_pos=-1.25, endpoints=(-2.0, 2.0), width=0.5)
+        world.walls = [left_wall, top_wall, bot_wall, right_wall]
+
         # make initial conditions
         self.reset_world(world)
         return world
