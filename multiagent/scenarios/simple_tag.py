@@ -128,20 +128,62 @@ class Scenario(BaseScenario):
                         rew += 10
         return rew
 
+    # def observation(self, agent, world):
+    #     # get positions of all entities in this agent's reference frame
+    #     entity_pos = []
+    #     for entity in world.landmarks:
+    #         if not entity.boundary:
+    #             entity_pos.append(entity.state.p_pos - agent.state.p_pos)
+    #     # communication of all other agents
+    #     comm = []
+    #     other_pos = []
+    #     other_vel = []
+    #     for other in world.agents:
+    #         if other is agent: continue
+    #         comm.append(other.state.c)
+    #         other_pos.append(other.state.p_pos - agent.state.p_pos)
+    #         if not other.adversary:
+    #             other_vel.append(other.state.p_vel)
+    #     return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+
+
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
         for entity in world.landmarks:
             if not entity.boundary:
-                entity_pos.append(entity.state.p_pos - agent.state.p_pos)
+                entity_pos.append(entity.state.p_pos)
+
         # communication of all other agents
         comm = []
-        other_pos = []
-        other_vel = []
+
+        # position/velocity of predators
+        pred_pos = []
+        pred_vel = []
+
+        # position / velocity of prey
+        prey_pos = []
+        prey_vel = []
+
         for other in world.agents:
             if other is agent: continue
             comm.append(other.state.c)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
-            if not other.adversary:
-                other_vel.append(other.state.p_vel)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+            if other.adversary:
+                pred_pos.append(other.state.p_pos)
+                pred_vel.append(other.state.p_vel)
+            else:
+                prey_pos.append(other.state.p_pos)
+                prey_vel.append(other.state.p_vel) 
+
+        obs = {
+            'pos' : agent.state.p_pos,
+            'vel' : agent.state.p_vel,
+            'entity_pos': entity_pos,
+            'comm': comm,
+            'pred_pos' : pred_pos,
+            'pred_vel' :pred_vel,
+            'prey_pos' : prey_pos,
+            'prey_vel' : prey_vel
+        }
+
+        return obs

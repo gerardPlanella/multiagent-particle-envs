@@ -138,6 +138,7 @@ class World(object):
         # set applied forces
         for i, agent in enumerate(self.agents):
             if agent.movable and self.valid_move_planned(agent):
+            # if agent.movable:
                 noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
                 p_force[i] = agent.action.u + noise
 
