@@ -200,7 +200,6 @@ class World(object):
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             
-            # TODO: ADD TAURUS MATH HERE
             entity.state.p_pos += entity.state.p_vel * self.dt
 
             if not self.bounded:

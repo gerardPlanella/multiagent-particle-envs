@@ -4,7 +4,7 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, bounded=True):
+    def make_world(self, bounded, max_pred_vel, baseline, noise=False):
         world = World()
         # set any world properties first
         world.dim_c = 2
@@ -12,6 +12,7 @@ class Scenario(BaseScenario):
         num_adversaries = 3
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 2
+
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -20,9 +21,10 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
-            agent.accel = 3.0 if agent.adversary else 4.0
+            agent.accel = 3.0 if agent.adversary else 3.0
             #agent.accel = 20.0 if agent.adversary else 25.0
-            agent.max_speed = 1.0 if agent.adversary else 1.3
+            agent.max_speed = max_pred_vel if agent.adversary else 1.3
+
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
         for i, landmark in enumerate(world.landmarks):
@@ -32,6 +34,7 @@ class Scenario(BaseScenario):
             landmark.size = 0.2
             landmark.boundary = False
 
+        # handle boundaries
         if bounded:
             world.bounded = True
 
@@ -44,6 +47,12 @@ class Scenario(BaseScenario):
         else:
             world.bounded = False
             
+        # baseline setup: always generate landmarks in same location
+        self.baseline = baseline
+        if self.baseline:
+            self.landmark_pos = [np.random.uniform(0.1, 1.9, world.dim_p) for i in range(num_landmarks)]
+
+        self.noise = noise
 
         # make initial conditions
         self.reset_world(world)
@@ -64,10 +73,20 @@ class Scenario(BaseScenario):
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         for i, landmark in enumerate(world.landmarks):
-            if not landmark.boundary:
-                # landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
-                landmark.state.p_pos = np.random.uniform(0.1, 1.9, world.dim_p)
-                landmark.state.p_vel = np.zeros(world.dim_p)
+            if self.baseline:
+                if not landmark.boundary:
+                    landmark.state.p_pos = self.landmark_pos[i]
+                    landmark.state.p_vel = np.zeros(world.dim_p)
+            else:
+                if not landmark.boundary:
+                    # landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
+                    landmark.state.p_pos = np.random.uniform(0.1, 1.9, world.dim_p)
+                    landmark.state.p_vel = np.zeros(world.dim_p)
+
+            # if not landmark.boundary:
+            #     # landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
+            #     landmark.state.p_pos = np.random.uniform(0.1, 1.9, world.dim_p)
+            #     landmark.state.p_vel = np.zeros(world.dim_p)
 
 
     def benchmark_data(self, agent, world):
@@ -116,20 +135,6 @@ class Scenario(BaseScenario):
                     rew -= 10
 
         # agents are penalized for exiting the screen, so that they can be caught by the adversaries
-        # def bound(x):
-        #     if x < 0.9:
-        #         return 0
-        #     if x < 1.0:
-        #         return (x - 0.9) * 10
-        #     return min(np.exp(2 * x - 2), 10)
-        # for p in range(world.dim_p):
-        #     x = abs(agent.state.p_pos[p])
-        #     rew -= bound(x)
-
-        # return rew
-
-        # TODO: Redefine loss for leaving the world
-        # TODO: bounds no longer valid for world coordinates
         def bound(x):
             if x < 0.9:
                 return 0
@@ -198,4 +203,17 @@ class Scenario(BaseScenario):
             'prey_vel' : prey_vel
         }
 
+        if self.noise:
+            obs = self.add_noise(obs)
+
         return obs
+
+
+    def add_noise(self, obs):
+        # add noise to positions
+        obs['pos'] += np.random.normal(0, 0.1, 2)
+        obs['pred_pos'] = [p + np.random.normal(0, 0.1, 2) for p in obs['pred_pos']]
+        obs['prey_pos'] = [p + np.random.normal(0, 0.1, 2) for p in obs['prey_pos']]
+
+        return obs
+
