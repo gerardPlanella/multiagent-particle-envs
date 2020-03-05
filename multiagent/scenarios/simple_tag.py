@@ -24,6 +24,8 @@ class Scenario(BaseScenario):
             agent.accel = 3.0 if agent.adversary else 3.0
             #agent.accel = 20.0 if agent.adversary else 25.0
             agent.max_speed = max_pred_vel if agent.adversary else 1.3
+            # agent.max_speed = max_pred_vel if agent.adversary else 0.75 # better visibility
+
 
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
@@ -50,7 +52,9 @@ class Scenario(BaseScenario):
         # baseline setup: always generate landmarks in same location
         self.baseline = baseline
         if self.baseline:
-            self.landmark_pos = [np.random.uniform(0.1, 1.9, world.dim_p) for i in range(num_landmarks)]
+            # self.landmark_pos = [np.random.uniform(0.1, 1.9, world.dim_p) for i in range(num_landmarks)]
+            self.landmark_pos = [np.array([0.4, 1.2]), np.array([0.9, 0.45])]
+
 
         self.noise = noise
 

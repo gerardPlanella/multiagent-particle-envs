@@ -160,7 +160,6 @@ class MultiAgentEnv(gym.Env):
         else:
             action = [action]
 
-        # TODO: ADD BOUNDS TO WORLD
         if agent.movable:
             # physical action
             if self.discrete_action_input:

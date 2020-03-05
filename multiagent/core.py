@@ -191,15 +191,22 @@ class World(object):
     def integrate_state(self, p_force):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
-            entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
+            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             if entity.max_speed is not None:
                 speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
+                # print('speed = {}'.format(speed))
+                # print('max speed = {}'.format(entity.max_speed))
+                # print('vel = {}'.format(entity.state.p_vel))
+                # print(' adjusted vel = {}'.format(entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
+                                                                #   np.square(entity.state.p_vel[1])) * entity.max_speed))
                 if speed > entity.max_speed:
+                    # print('hit max speed barrier!!')
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             
+            # print('speed = {}, vel = {}'.format(speed, entity.state.p_vel))
             entity.state.p_pos += entity.state.p_vel * self.dt
 
             if not self.bounded:
