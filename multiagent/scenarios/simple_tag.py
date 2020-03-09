@@ -4,7 +4,7 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, bounded, max_pred_vel, baseline, noise=False):
+    def make_world(self, bounded, pred_vel, prey_vel, baseline, noise=False):
         world = World()
         # set any world properties first
         world.dim_c = 2
@@ -18,13 +18,14 @@ class Scenario(BaseScenario):
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.collide = True
+            # agent.silent = False
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 3.0
             #agent.accel = 20.0 if agent.adversary else 25.0
-            agent.max_speed = max_pred_vel if agent.adversary else 1.3
-            # agent.max_speed = max_pred_vel if agent.adversary else 0.75 # better visibility
+            # agent.max_speed = max_pred_vel if agent.adversary else 1.3
+            agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
 
         # add landmarks
@@ -175,36 +176,31 @@ class Scenario(BaseScenario):
             if not entity.boundary:
                 entity_pos.append(entity.state.p_pos)
 
-        # communication of all other agents
-        comm = []
-
-        # position/velocity of predators
-        pred_pos = []
-        pred_vel = []
-
-        # position / velocity of prey
-        prey_pos = []
-        prey_vel = []
-
+        # pred/prey observations
+        pred_pos, pred_vel, pred_comm = [], [], []
+        prey_pos, prey_vel, prey_comm = [], [], []
         for other in world.agents:
             if other is agent: continue
-            comm.append(other.state.c)
             if other.adversary:
                 pred_pos.append(other.state.p_pos)
                 pred_vel.append(other.state.p_vel)
+                pred_comm.append(other.state.c)
             else:
                 prey_pos.append(other.state.p_pos)
                 prey_vel.append(other.state.p_vel) 
+                prey_comm.append(other.state.c)
 
+        # TODO: try adding predator's velocity to communicated position
         obs = {
             'pos' : agent.state.p_pos,
             'vel' : agent.state.p_vel,
             'entity_pos': entity_pos,
-            'comm': comm,
             'pred_pos' : pred_pos,
             'pred_vel' :pred_vel,
+            'pred_comm': pred_comm,
             'prey_pos' : prey_pos,
-            'prey_vel' : prey_vel
+            'prey_vel' : prey_vel,
+            'prey_comm': prey_comm
         }
 
         if self.noise:
@@ -215,7 +211,7 @@ class Scenario(BaseScenario):
 
     def add_noise(self, obs):
         # add noise to positions
-        obs['pos'] += np.random.normal(0, 0.1, 2)
+        obs['pos'] += np.random.normal(0, 0.05, 2)
         obs['pred_pos'] = [p + np.random.normal(0, 0.1, 2) for p in obs['pred_pos']]
         obs['prey_pos'] = [p + np.random.normal(0, 0.1, 2) for p in obs['prey_pos']]
 
