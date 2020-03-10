@@ -3,6 +3,10 @@ from gym import spaces
 from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
+from multiagent.core import Agent, Landmark, Wall
+
+from multiagent import rendering # comment out to run headless
+
 
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
@@ -38,6 +42,8 @@ class MultiAgentEnv(gym.Env):
         # print('discrete action space = {}'.format(self.discrete_action_space))
         # print('discrete action input = {}'.format(self.discrete_action_input))
         # print('force discrete action = {}'.format(self.force_discrete_action))
+
+
 
         # configure spaces
         self.action_space = []
@@ -221,14 +227,14 @@ class MultiAgentEnv(gym.Env):
             if self.viewers[i] is None:
                 # import rendering only if we need it (and don't import for headless machines)
                 #from gym.envs.classic_control import rendering
-                from multiagent import rendering
+                # from multiagent import rendering
                 self.viewers[i] = rendering.Viewer(700,700)
 
         # create rendering geometry
         if self.render_geoms is None:
             # import rendering only if we need it (and don't import for headless machines)
             #from gym.envs.classic_control import rendering
-            from multiagent import rendering
+            # from multiagent import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
             for entity in self.world.entities:
@@ -264,7 +270,7 @@ class MultiAgentEnv(gym.Env):
 
         results = []
         for i in range(len(self.viewers)):
-            from multiagent import rendering
+            # from multiagent import rendering
             # update bounds to center around agent
             cam_range = 1
             if self.shared_viewer:
@@ -276,6 +282,13 @@ class MultiAgentEnv(gym.Env):
             # update geometry positions
             for e, entity in enumerate(self.world.entities):
                 self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
+
+                if isinstance(entity, Agent):
+                    if entity.state.in_collision and not entity.adversary:
+                        self.render_geoms[e].set_color(0.0, 0.0, 0.0, 1.0)
+                    else:
+                        self.render_geoms[e].set_color(*entity.color, 0.5)
+
             # render to display or array
             results.append(self.viewers[i].render(return_rgb_array = mode=='rgb_array'))
 
@@ -352,3 +365,6 @@ class BatchMultiAgentEnv(gym.Env):
         for env in self.env_batch:
             results_n += env.render(mode, close)
         return results_n
+
+
+

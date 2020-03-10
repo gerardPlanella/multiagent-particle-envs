@@ -7,6 +7,8 @@ class EntityState(object):
         self.p_pos = None
         # physical velocity
         self.p_vel = None
+        # currently in collision
+        self.in_collision = None
 
 # state of agents (including communication and internal/mental state)
 class AgentState(EntityState):
@@ -140,14 +142,15 @@ class World(object):
         # set actions for scripted agents 
         for agent in self.scripted_agents:
             agent.action = agent.action_callback(agent, self)
-        # gather forces applied to entities
+        # gather forces/collisions applied to entities
         p_force = [None] * len(self.entities)
+        coll = [False] * len(self.entities)
         # apply agent physical controls
         p_force = self.apply_action_force(p_force)
         # apply environment forces
-        p_force = self.apply_environment_force(p_force)
+        p_force, coll = self.apply_environment_force(p_force, coll)
         # integrate physical state
-        self.integrate_state(p_force)
+        self.integrate_state(p_force, coll)
         # update agent state
         for agent in self.agents:
             self.update_agent_state(agent)
@@ -163,7 +166,7 @@ class World(object):
         return p_force
 
     # gather physical forces acting on entities
-    def apply_environment_force(self, p_force):
+    def apply_environment_force(self, p_force, coll):
         # simple (but inefficient) collision response
         for a,entity_a in enumerate(self.entities):
             for b,entity_b in enumerate(self.entities):
@@ -171,9 +174,11 @@ class World(object):
                 # [f_a, f_b] = self.get_collision_force(entity_a, entity_b)
                 [f_a, f_b] = self.get_entity_collision_force(entity_a, entity_b)
                 if(f_a is not None):
+                    if not np.isclose(f_a, 0.0).all(): coll[a] = True # entity is in collision
                     if(p_force[a] is None): p_force[a] = 0.0
                     p_force[a] = f_a + p_force[a] 
                 if(f_b is not None):
+                    if not np.isclose(f_b, 0.0).all(): coll[b] = True  # entity is in collision
                     if(p_force[b] is None): p_force[b] = 0.0
                     p_force[b] = f_b + p_force[b]    
             
@@ -185,13 +190,13 @@ class World(object):
                             p_force[a] = 0.0
                         p_force[a] = p_force[a] + wf
 
-        return p_force
+        return p_force, coll
 
     # integrate physical state
-    def integrate_state(self, p_force):
+    def integrate_state(self, p_force, coll):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
-            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
+            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             if entity.max_speed is not None:
@@ -201,6 +206,9 @@ class World(object):
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             
             entity.state.p_pos += entity.state.p_vel * self.dt
+
+            # entity is in collision
+            entity.state.in_collision = True if coll[i] == True else False
 
             if not self.bounded:
                 entity.state.p_pos %= self.world_size
@@ -220,6 +228,7 @@ class World(object):
             return [None, None] # not a collider
         if (entity_a is entity_b):
             return [None, None] # don't collide against itself
+
         # compute actual distance between entities
         delta_pos = entity_a.state.p_pos - entity_b.state.p_pos
         dist = np.sqrt(np.sum(np.square(delta_pos)))
@@ -228,10 +237,13 @@ class World(object):
         # softmax penetration
         k = self.contact_margin
         penetration = np.logaddexp(0, -(dist - dist_min)/k)*k
+        
         force = self.contact_force * delta_pos / dist * penetration
         force_a = +force if entity_a.movable else None
         force_b = -force if entity_b.movable else None
+
         return [force_a, force_b]
+
 
     # get collision forces for contact between an entity and a wall
     def get_wall_collision_force(self, entity, wall):

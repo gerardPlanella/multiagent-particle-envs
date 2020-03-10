@@ -18,15 +18,13 @@ class Scenario(BaseScenario):
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.collide = True
-            # agent.silent = False
-            agent.silent = True
+            agent.silent = False
+            # agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 3.0
             #agent.accel = 20.0 if agent.adversary else 25.0
-            # agent.max_speed = max_pred_vel if agent.adversary else 1.3
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
-
 
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
