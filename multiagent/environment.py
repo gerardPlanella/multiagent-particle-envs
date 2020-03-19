@@ -7,7 +7,6 @@ from multiagent.core import Agent, Landmark, Wall
 
 from multiagent import rendering # comment out to run headless
 
-
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
 class MultiAgentEnv(gym.Env):
@@ -30,11 +29,13 @@ class MultiAgentEnv(gym.Env):
         self.info_callback = info_callback
         self.done_callback = done_callback
         # environment parameters
-        self.discrete_action_space = True
+        # self.discrete_action_space = True
+        self.discrete_action_space = world.discrete_actions
+
         # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
         self.discrete_action_input = False
         # if true, even the action is continuous, action will be performed discretely
-        self.force_discrete_action = world.discrete_action if hasattr(world, 'discrete_action') else False
+        self.force_discrete_action = world.force_discrete if hasattr(world, 'force_discrete') else False
         # if true, every agent has the same reward
         self.shared_reward = world.collaborative if hasattr(world, 'collaborative') else False
         self.time = 0
@@ -42,8 +43,6 @@ class MultiAgentEnv(gym.Env):
         # print('discrete action space = {}'.format(self.discrete_action_space))
         # print('discrete action input = {}'.format(self.discrete_action_input))
         # print('force discrete action = {}'.format(self.force_discrete_action))
-
-
 
         # configure spaces
         self.action_space = []
@@ -154,6 +153,7 @@ class MultiAgentEnv(gym.Env):
     def _set_action(self, action, agent, action_space, time=None):
         agent.action.u = np.zeros(self.world.dim_p)
         agent.action.c = np.zeros(self.world.dim_c)
+
         # process action
         if isinstance(action_space, MultiDiscrete):
             act = []
@@ -166,6 +166,8 @@ class MultiAgentEnv(gym.Env):
         else:
             action = [action]
 
+        action = action[0]
+
         if agent.movable:
             # physical action
             if self.discrete_action_input:
@@ -177,7 +179,7 @@ class MultiAgentEnv(gym.Env):
                 if action[0] == 4: agent.action.u[1] = +1.0
             else:
                 if self.force_discrete_action:
-                    d = np.argmax(action[0])
+                    d = np.argmax(action)
                     action[0][:] = 0.0
                     action[0][d] = 1.0
                 if self.discrete_action_space:
@@ -185,11 +187,13 @@ class MultiAgentEnv(gym.Env):
                     agent.action.u[1] += action[0][3] - action[0][4]
                 else:
                     agent.action.u = action[0]
+
             sensitivity = 5.0
             if agent.accel is not None:
                 sensitivity = agent.accel
             agent.action.u *= sensitivity
             action = action[1:]
+
         if not agent.silent:
             # communication action
             if self.discrete_action_input:
@@ -197,7 +201,8 @@ class MultiAgentEnv(gym.Env):
                 agent.action.c[action[0]] = 1.0
             else:
                 agent.action.c = action[0]
-            action = action[1:]
+        action = action[1:]
+
         # make sure we used all elements of action
         assert len(action) == 0
 

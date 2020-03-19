@@ -4,12 +4,13 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, bounded, pred_vel, prey_vel, baseline, noise=False):
+    def make_world(self, bounded, pred_vel, prey_vel, baseline, noise=False, discrete=True):
         world = World()
-        # set any world properties first
+        # set any world properties
         world.dim_c = 2
         num_good_agents = 1
         num_adversaries = 3
+        # num_adversaries = 1
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 2
 
@@ -18,9 +19,9 @@ class Scenario(BaseScenario):
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.collide = True
-            agent.silent = False
-            # agent.silent = True
+            # agent.silent = False
             agent.adversary = True if i < num_adversaries else False
+            agent.silent = False if agent.adversary else True
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 3.0
             #agent.accel = 20.0 if agent.adversary else 25.0
@@ -54,8 +55,11 @@ class Scenario(BaseScenario):
             # self.landmark_pos = [np.random.uniform(0.1, 1.9, world.dim_p) for i in range(num_landmarks)]
             self.landmark_pos = [np.array([0.4, 1.2]), np.array([0.9, 0.45])]
 
-
+        # gaussian noise
         self.noise = noise
+
+        # discrete actions
+        world.discrete_actions = discrete
 
         # make initial conditions
         self.reset_world(world)
@@ -71,7 +75,6 @@ class Scenario(BaseScenario):
             landmark.color = np.array([0.25, 0.25, 0.25])
         # set random initial states
         for agent in world.agents:
-            # agent.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
             agent.state.p_pos = np.random.uniform(0, 2, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
