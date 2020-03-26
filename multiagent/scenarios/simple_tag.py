@@ -4,12 +4,12 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, bounded, pred_vel, prey_vel, baseline, noise=False, discrete=True, tiny=False):
+    def make_world(self, bounded, n_preds, pred_vel, prey_vel, baseline, noise=False, discrete=True, tiny=False):
         world = World()
         # set any world properties
         world.dim_c = 2
         num_good_agents = 1
-        num_adversaries = 3
+        num_adversaries = n_preds
         # num_adversaries = 1
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 2
@@ -28,7 +28,8 @@ class Scenario(BaseScenario):
 
             if tiny:
                 agent.size /= 5
-                agent.max_speed /= 5
+                agent.max_speed /= 2
+
 
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
@@ -38,6 +39,9 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.2
             landmark.boundary = False
+
+            if tiny:
+                landmark.size /= 2
 
         # handle boundaries
         if bounded:
@@ -72,8 +76,8 @@ class Scenario(BaseScenario):
     def reset_world(self, world):
         # random properties for agents
         for i, agent in enumerate(world.agents):
-            # agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
-            agent.color = np.array([0.1, 0.5, 0.1]) if not agent.adversary else np.array([0.5, 0.1, 0.1])
+            agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
+            # agent.color = np.array([0, 0, 0]) if not agent.adversary else np.array([0.5, 0.1, 0.1])
 
             # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
