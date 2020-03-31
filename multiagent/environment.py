@@ -277,10 +277,16 @@ class MultiAgentEnv(gym.Env):
         for i in range(len(self.viewers)):
             # from multiagent import rendering
             # update bounds to center around agent
-            cam_range = 1
+            # cam_range = 1
+
+            cam_range = self.world.size / 2
+
+
             if self.shared_viewer:
                 # pos = np.zeros(self.world.dim_p)
-                pos = np.ones(self.world.dim_p)
+                # pos = np.ones(self.world.dim_p)
+                pos = np.array([self.world.size / 2, self.world.size / 2])
+
             else:
                 pos = self.agents[i].state.p_pos
             self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)

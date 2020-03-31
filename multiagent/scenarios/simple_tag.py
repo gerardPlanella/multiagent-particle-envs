@@ -4,13 +4,13 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, bounded, n_preds, pred_vel, prey_vel, baseline, noise=False, discrete=True, tiny=False):
+    def make_world(self, size, bounded, n_preds, pred_vel, prey_vel, baseline, noise=False, discrete=True):
         world = World()
         # set any world properties
         world.dim_c = 2
+        world.size = size
         num_good_agents = 1
         num_adversaries = n_preds
-        # num_adversaries = 1
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 2
 
@@ -26,11 +26,6 @@ class Scenario(BaseScenario):
             agent.accel = 3.0 if agent.adversary else 3.0
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
-            if tiny:
-                agent.size /= 5
-                agent.max_speed /= 2
-
-
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
         for i, landmark in enumerate(world.landmarks):
@@ -40,14 +35,10 @@ class Scenario(BaseScenario):
             landmark.size = 0.2
             landmark.boundary = False
 
-            if tiny:
-                landmark.size /= 2
-
         # handle boundaries
         if bounded:
-            world.bounded = True
-
             # add border walls
+            world.bounded = True
             left_wall = Wall(orient='V', axis_pos=2.25, endpoints=(-0.75, 2.75), width=0.5)
             right_wall = Wall(orient='V', axis_pos=-0.25, endpoints=(-0.75, 2.75), width=0.5)
             top_wall = Wall(axis_pos=2.25, endpoints=(-0.75, 2.75), width=0.5)
@@ -56,11 +47,10 @@ class Scenario(BaseScenario):
         else:
             world.bounded = False
             
-        # baseline setup: always generate landmarks in same location
+        # baseline: always generate landmarks in same location
         self.baseline = baseline
         if self.baseline:
-            # self.landmark_pos = [np.random.uniform(0.1, 1.9, world.dim_p) for i in range(num_landmarks)]
-            self.landmark_pos = [np.array([0.4, 1.2]), np.array([0.9, 0.45])]
+            self.landmark_pos = [np.array([0.25, 1.2]), np.array([0.7, 0.45])]
 
         # gaussian noise
         self.noise = noise
@@ -74,19 +64,25 @@ class Scenario(BaseScenario):
 
 
     def reset_world(self, world):
-        # random properties for agents
+        # properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
-            # agent.color = np.array([0, 0, 0]) if not agent.adversary else np.array([0.5, 0.1, 0.1])
-
-            # random properties for landmarks
+        # roperties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
-        # set random initial states
+
+        # set initial states
         for agent in world.agents:
-            agent.state.p_pos = np.random.uniform(0, 2, world.dim_p)
+            if self.baseline:
+                # sample position from Gaussian centered at origin
+                agent.state.p_pos = np.random.normal(world.size/2, 0.75, world.dim_p)
+            else:
+                # random over whole world
+                agent.state.p_pos = np.random.uniform(0, world.size, world.dim_p)
+
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
+
         for i, landmark in enumerate(world.landmarks):
             if self.baseline:
                 if not landmark.boundary:
@@ -94,14 +90,9 @@ class Scenario(BaseScenario):
                     landmark.state.p_vel = np.zeros(world.dim_p)
             else:
                 if not landmark.boundary:
-                    # landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
-                    landmark.state.p_pos = np.random.uniform(0.1, 1.9, world.dim_p)
+                    landmark.state.p_pos = np.random.uniform(0.1, world.size-0.1, world.dim_p)
                     landmark.state.p_vel = np.zeros(world.dim_p)
 
-            # if not landmark.boundary:
-            #     # landmark.state.p_pos = np.random.uniform(-0.9, +0.9, world.dim_p)
-            #     landmark.state.p_pos = np.random.uniform(0.1, 1.9, world.dim_p)
-            #     landmark.state.p_vel = np.zeros(world.dim_p)
 
 
     def benchmark_data(self, agent, world):
@@ -200,7 +191,6 @@ class Scenario(BaseScenario):
                 prey_vel.append(other.state.p_vel) 
                 prey_comm.append(other.state.c)
 
-        # TODO: try adding predator's velocity to communicated position
         obs = {
             'pos' : agent.state.p_pos,
             'vel' : agent.state.p_vel,

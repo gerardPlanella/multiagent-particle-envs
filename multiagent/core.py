@@ -120,9 +120,10 @@ class World(object):
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
 
-        self.world_size = 2.0
+        self.size = 2.0
         self.bounded = None
         self.discrete_actions = True
+        self.tiny = False
 
     # return all entities in the world
     @property
@@ -213,7 +214,7 @@ class World(object):
             entity.state.in_collision = True if coll[i] == True else False
 
             if not self.bounded:
-                entity.state.p_pos %= self.world_size
+                entity.state.p_pos %= self.size
 
 
     def update_agent_state(self, agent):
