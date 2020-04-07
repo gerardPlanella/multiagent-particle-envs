@@ -145,18 +145,23 @@ class World(object):
         # set actions for scripted agents 
         for agent in self.scripted_agents:
             agent.action = agent.action_callback(agent, self)
+        
         # gather forces/collisions applied to entities
         p_force = [None] * len(self.entities)
         coll = [False] * len(self.entities)
         # apply agent physical controls
         p_force = self.apply_action_force(p_force)
+
         # apply environment forces
         p_force, coll = self.apply_environment_force(p_force, coll)
+
         # integrate physical state
         self.integrate_state(p_force, coll)
+
         # update agent state
         for agent in self.agents:
             self.update_agent_state(agent)
+        
 
     # gather agent action forces
     def apply_action_force(self, p_force):
@@ -202,6 +207,7 @@ class World(object):
             # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # effects inertia
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
+            
             if entity.max_speed is not None:
                 speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
                 if speed > entity.max_speed:
@@ -215,6 +221,7 @@ class World(object):
 
             if not self.bounded:
                 entity.state.p_pos %= self.size
+
 
 
     def update_agent_state(self, agent):

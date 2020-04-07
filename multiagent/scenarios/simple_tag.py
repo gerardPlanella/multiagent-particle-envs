@@ -1,10 +1,12 @@
 import numpy as np
+import math
+import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, size, bounded, n_preds, pred_vel, prey_vel, baseline, noise=False, discrete=True):
+    def make_world(self, size, bounded, n_preds, pred_vel, prey_vel, baseline, pred_init, noise=False, discrete=True):
         world = World()
         # set any world properties
         world.dim_c = 2
@@ -52,6 +54,15 @@ class Scenario(BaseScenario):
         if self.baseline:
             self.landmark_pos = [np.array([0.25, 1.2]), np.array([0.7, 0.45])]
 
+        # initial predator positions
+        self.pred_init = pred_init
+        if self.pred_init == 'circle':
+            # init around circle
+            angs = np.linspace(0, 2*math.pi, n_preds, endpoint=False)
+            origin = np.array([world.size/2, world.size/2])
+            self.circle_pts = [origin + (np.array([math.cos(ang), math.sin(ang)])*3.0) for ang in angs]
+            self.circle_pts.append(origin)
+
         # gaussian noise
         self.noise = noise
 
@@ -64,6 +75,9 @@ class Scenario(BaseScenario):
 
 
     def reset_world(self, world):
+        if self.pred_init == 'circle':
+            temp_pts = copy.deepcopy(self.circle_pts)
+        
         # properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
@@ -71,17 +85,28 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
+
         # set initial states
-        for agent in world.agents:
+        for i, agent in enumerate(world.agents):
             if self.baseline:
-                # sample position from Gaussian centered at origin
-                agent.state.p_pos = np.random.normal(world.size/2, 0.75, world.dim_p)
+                if self.pred_init == 'circle':
+                    # init around circle
+                    agent.state.p_pos = temp_pts[i]
+                else:
+                    # sample position from Gaussian centered at origin
+                    agent.state.p_pos = np.random.normal(world.size/2, 0.75, world.dim_p)
             else:
-                # random over whole world
-                agent.state.p_pos = np.random.uniform(0, world.size, world.dim_p)
+                if self.pred_init == 'circle':
+                    # init around circle
+                    agent.state.p_pos = temp_pts[i]
+                else:
+                    # random over whole world
+                    agent.state.p_pos = np.random.uniform(0, world.size, world.dim_p)
 
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
+
+        
 
         for i, landmark in enumerate(world.landmarks):
             if self.baseline:
@@ -95,6 +120,12 @@ class Scenario(BaseScenario):
 
 
 
+    def hit_boundary(self, x, size):
+        if x > size - 0.1:
+            return True
+        else:
+            return False
+
     def benchmark_data(self, agent, world):
         # returns data for benchmarking purposes
         if agent.adversary:
@@ -102,9 +133,15 @@ class Scenario(BaseScenario):
             for a in self.good_agents(world):
                 if self.is_collision(a, agent):
                     collisions += 1
-            return collisions
+            return collisions, 0
         else:
-            return 0
+            # check if prey hit boundary
+            for p in range(world.dim_p):
+                x = abs(agent.state.p_pos[p])
+                if self.hit_boundary(x, world.size):
+                    return 0, 1
+                
+            return 0, 0
 
 
     def is_collision(self, agent1, agent2):
@@ -141,15 +178,9 @@ class Scenario(BaseScenario):
                     rew -= 10
 
         # agents are penalized for exiting the screen, so that they can be caught by the adversaries
-        def bound(x):
-            if x < 0.9:
-                return 0
-            if x < 1.0:
-                return (x - 0.9) * 10
-            return min(np.exp(2 * x - 2), 10)
-        for p in range(world.dim_p):
-            x = abs(agent.state.p_pos[p])
-            rew -= bound(x)
+        # for p in range(world.dim_p):
+        #     x = abs(agent.state.p_pos[p])
+        #     rew -= self.bound(x, self.size)
 
         return rew
 
