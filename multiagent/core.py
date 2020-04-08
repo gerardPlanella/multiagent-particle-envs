@@ -182,11 +182,11 @@ class World(object):
                 # [f_a, f_b] = self.get_collision_force(entity_a, entity_b)
                 [f_a, f_b] = self.get_entity_collision_force(entity_a, entity_b)
                 if(f_a is not None):
-                    if not np.isclose(f_a, 0.0).all(): coll[a] = True # entity is in collision
+                    if not np.isclose(f_a, 0.0, atol=1e-5).all(): coll[a] = True  # entity is in collision
                     if(p_force[a] is None): p_force[a] = 0.0
                     p_force[a] = f_a + p_force[a] 
                 if(f_b is not None):
-                    if not np.isclose(f_b, 0.0).all(): coll[b] = True  # entity is in collision
+                    if not np.isclose(f_b, 0.0, atol=1e-5).all(): coll[b] = True  # entity is in collision
                     if(p_force[b] is None): p_force[b] = 0.0
                     p_force[b] = f_b + p_force[b]    
             
@@ -204,7 +204,7 @@ class World(object):
     def integrate_state(self, p_force, coll):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
-            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # effects inertia
+            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             
