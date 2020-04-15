@@ -11,6 +11,8 @@ class Scenario(BaseScenario):
         # set any world properties
         world.dim_c = 2
         world.size = size
+        world.origin = np.array([world.size/2, world.size/2])
+
         num_good_agents = 1
         num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
@@ -59,9 +61,9 @@ class Scenario(BaseScenario):
         if self.pred_init == 'circle':
             # init around circle
             angs = np.linspace(0, 2*math.pi, n_preds, endpoint=False)
-            origin = np.array([world.size/2, world.size/2])
-            self.circle_pts = [origin + (np.array([math.cos(ang), math.sin(ang)])*3.0) for ang in angs]
-            self.circle_pts.append(origin)
+            self.circle_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*3.0) for ang in angs]
+            # self.circle_pts.append(origin)
+
 
         # gaussian noise
         self.noise = noise
@@ -77,6 +79,8 @@ class Scenario(BaseScenario):
     def reset_world(self, world):
         if self.pred_init == 'circle':
             temp_pts = copy.deepcopy(self.circle_pts)
+            # add some noise to prey init (not exactly in middle)
+            temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
         
         # properties for agents
         for i, agent in enumerate(world.agents):
