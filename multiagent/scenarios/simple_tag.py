@@ -14,9 +14,12 @@ class Scenario(BaseScenario):
         world.origin = np.array([world.size/2, world.size/2])
 
         num_good_agents = 1
+        self.n_preds = n_preds
         num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
-        num_landmarks = 2
+        num_landmarks = 0
+        # num_landmarks = 2
+
 
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -57,14 +60,31 @@ class Scenario(BaseScenario):
             self.landmark_pos = [np.array([0.25, 1.2]), np.array([0.7, 0.45])]
 
         # initial predator positions
+        self.angs = np.linspace(0, 2*math.pi, self.n_preds, endpoint=False)
+
         self.pred_init = pred_init
         if self.pred_init == 'circle':
             # init around circle
-            angs = np.linspace(0, 2*math.pi, n_preds, endpoint=False)
-            self.circle_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*3.0) for ang in angs]
-            # self.circle_pts.append(origin)
 
+            # example 1
+            self.circle_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*3.0) for ang in self.angs]
+            self.circle_pts.append(world.origin)
 
+            # example 2
+            # self.circle_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*6.0) for ang in self.angs]
+            # self.circle_pts.append(world.origin)
+
+            # example 3
+            # new_origin = world.origin + np.array([4.0, 4.0])
+            # self.circle_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*3.5) for ang in self.angs]
+            # self.circle_pts.append(new_origin)
+
+            # example 4 -- radius 5.0 in top left
+            # new_origin = world.origin + np.array([-2.0, 3.0])
+            # self.circle_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*5.0) for ang in self.angs]
+            # self.circle_pts.append(new_origin)
+
+            
         # gaussian noise
         self.noise = noise
 
@@ -80,7 +100,16 @@ class Scenario(BaseScenario):
         if self.pred_init == 'circle':
             temp_pts = copy.deepcopy(self.circle_pts)
             # add some noise to prey init (not exactly in middle)
-            temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+            # temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+        elif self.pred_init == 'rand-circ':
+            # self.angs += np.random.uniform(0, math.pi)
+            new_origin = world.origin + np.random.uniform(-4.0, 4.0, size=2)
+            new_radius = np.random.uniform(3.0, 6.0)
+            # print('origin = {}, radius = {}'.format(new_origin, new_radius))
+            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*new_radius) for ang in self.angs]
+            temp_pts.append(new_origin)
+            # temp_pts.append(np.random.normal(new_origin[0], 0.15, size=2))
+
         
         # properties for agents
         for i, agent in enumerate(world.agents):
@@ -93,24 +122,24 @@ class Scenario(BaseScenario):
         # set initial states
         for i, agent in enumerate(world.agents):
             if self.baseline:
-                if self.pred_init == 'circle':
+                if self.pred_init == 'circle' or self.pred_init == 'rand-circ':
                     # init around circle
-                    agent.state.p_pos = temp_pts[i]
+                    agent.state.real_pos = temp_pts[i]
                 else:
                     # sample position from Gaussian centered at origin
-                    agent.state.p_pos = np.random.normal(world.size/2, 0.75, world.dim_p)
+                    agent.state.real_pos = np.random.normal(world.size/2, 0.75, world.dim_p)
             else:
-                if self.pred_init == 'circle':
+                if self.pred_init == 'circle' or self.pred_init == 'rand-circ':
                     # init around circle
-                    agent.state.p_pos = temp_pts[i]
+                    agent.state.real_pos = temp_pts[i]
                 else:
                     # random over whole world
-                    agent.state.p_pos = np.random.uniform(0, world.size, world.dim_p)
+                    agent.state.real_pos = np.random.uniform(0, world.size, world.dim_p)
 
+            # agents can move beyond confines of camera image --> need to adjust coords accordingly
+            agent.state.p_pos = agent.state.real_pos % world.size
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
-
-        
 
         for i, landmark in enumerate(world.landmarks):
             if self.baseline:
@@ -213,27 +242,32 @@ class Scenario(BaseScenario):
                 entity_pos.append(entity.state.p_pos)
 
         # pred/prey observations
-        pred_pos, pred_vel, pred_comm = [], [], []
-        prey_pos, prey_vel, prey_comm = [], [], []
+        pred_p_pos, pred_r_pos, pred_vel, pred_comm = [], [], [], []
+        prey_p_pos, prey_r_pos, prey_vel, prey_comm = [], [], [], []
         for other in world.agents:
             if other is agent: continue
             if other.adversary:
-                pred_pos.append(other.state.p_pos)
+                pred_p_pos.append(other.state.p_pos)
+                pred_r_pos.append(other.state.real_pos)
                 pred_vel.append(other.state.p_vel)
                 pred_comm.append(other.state.c)
             else:
-                prey_pos.append(other.state.p_pos)
+                prey_p_pos.append(other.state.p_pos)
+                prey_r_pos.append(other.state.real_pos)
                 prey_vel.append(other.state.p_vel) 
                 prey_comm.append(other.state.c)
 
         obs = {
             'pos' : agent.state.p_pos,
+            'r_pos' : agent.state.real_pos,
             'vel' : agent.state.p_vel,
             'entity_pos': entity_pos,
-            'pred_pos' : pred_pos,
+            'pred_pos' : pred_p_pos,
+            'pred_coords' : pred_r_pos,
             'pred_vel' :pred_vel,
             'pred_comm': pred_comm,
-            'prey_pos' : prey_pos,
+            'prey_pos' : prey_p_pos,
+            'prey_coords' : prey_r_pos,
             'prey_vel' : prey_vel,
             'prey_comm': prey_comm
         }

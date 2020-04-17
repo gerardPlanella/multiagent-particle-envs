@@ -5,6 +5,8 @@ class EntityState(object):
     def __init__(self):
         # physical position
         self.p_pos = None
+        self.real_pos = None
+
         # physical velocity
         self.p_vel = None
         # currently in collision
@@ -182,11 +184,11 @@ class World(object):
                 # [f_a, f_b] = self.get_collision_force(entity_a, entity_b)
                 [f_a, f_b] = self.get_entity_collision_force(entity_a, entity_b)
                 if(f_a is not None):
-                    if not np.isclose(f_a, 0.0, atol=1e-5).all(): coll[a] = True  # entity is in collision
+                    if not np.isclose(f_a, 0.0, atol=1e-3).all(): coll[a] = True  # entity is in collision
                     if(p_force[a] is None): p_force[a] = 0.0
                     p_force[a] = f_a + p_force[a] 
                 if(f_b is not None):
-                    if not np.isclose(f_b, 0.0, atol=1e-5).all(): coll[b] = True  # entity is in collision
+                    if not np.isclose(f_b, 0.0, atol=1e-3).all(): coll[b] = True  # entity is in collision
                     if(p_force[b] is None): p_force[b] = 0.0
                     p_force[b] = f_b + p_force[b]    
             
@@ -214,14 +216,13 @@ class World(object):
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             
-            entity.state.p_pos += entity.state.p_vel * self.dt
+            entity.state.real_pos += entity.state.p_vel * self.dt
 
             # entity is in collision
             entity.state.in_collision = True if coll[i] == True else False
 
             if not self.bounded:
-                entity.state.p_pos %= self.size
-
+                entity.state.p_pos = entity.state.real_pos % self.size
 
 
     def update_agent_state(self, agent):
