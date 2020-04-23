@@ -101,14 +101,15 @@ class Scenario(BaseScenario):
 
         elif self.pred_init == 'rand-circ':
             # self.angs += np.random.uniform(0, math.pi)
-            new_origin = world.origin + np.random.uniform(-4.5, 4.5, size=2)
+            new_origin = world.origin + np.random.uniform(-world.size, world.size, size=2)
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
-            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
-            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
+            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
+            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
 
             # temp_pts.append(new_origin)
-            # temp_pts.append(np.random.normal(new_origin[0], 0.15, size=2))
-            temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+            noise = np.random.normal(0.0, 0.1, size=2)
+            temp_pts.append(new_origin + noise)
+            # temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
 
             # temp_pts.append(new_origin)
 
