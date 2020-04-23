@@ -6,7 +6,7 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, size, bounded, n_preds, pred_vel, prey_vel, baseline, pred_init, noise=False, discrete=True):
+    def make_world(self, size, bounded, n_preds, pred_vel, prey_vel, baseline, pred_init, radius=3.0, noise=False, discrete=True):
         world = World()
         # set any world properties
         world.dim_c = 2
@@ -61,28 +61,8 @@ class Scenario(BaseScenario):
 
         # initial predator positions
         self.angs = np.linspace(0, 2*math.pi, self.n_preds, endpoint=False)
-
+        self.radius = radius
         self.pred_init = pred_init
-        if self.pred_init == 'circle':
-            # init around circle
-
-            # example 1
-            self.circle_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*3.0) for ang in self.angs]
-            self.circle_pts.append(world.origin)
-
-            # example 2
-            # self.circle_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*6.0) for ang in self.angs]
-            # self.circle_pts.append(world.origin)
-
-            # example 3
-            # new_origin = world.origin + np.array([4.0, 4.0])
-            # self.circle_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*3.5) for ang in self.angs]
-            # self.circle_pts.append(new_origin)
-
-            # example 4 -- radius 5.0 in top left
-            # new_origin = world.origin + np.array([-2.0, 3.0])
-            # self.circle_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*5.0) for ang in self.angs]
-            # self.circle_pts.append(new_origin)
 
             
         # gaussian noise
@@ -98,26 +78,46 @@ class Scenario(BaseScenario):
 
     def reset_world(self, world):
         if self.pred_init == 'circle':
-            temp_pts = copy.deepcopy(self.circle_pts)
+            # init around circle
+            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
+            temp_pts.append(world.origin)
+
+            # example 2
+            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*6.0) for ang in self.angs]
+            # temp_pts.append(world.origin)
+
+            # example 3
+            # new_origin = world.origin + np.array([4.0, 4.0])
+            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*3.5) for ang in self.angs]
+            # temp_pts.append(new_origin)
+
+            # example 4 -- radius 5.0 in top left
+            # new_origin = world.origin + np.array([-2.0, 3.0])
+            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*5.0) for ang in self.angs]
+            # temp_pts.append(new_origin)
+
             # add some noise to prey init (not exactly in middle)
             # temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+
         elif self.pred_init == 'rand-circ':
             # self.angs += np.random.uniform(0, math.pi)
-            new_origin = world.origin + np.random.uniform(-4.0, 4.0, size=2)
-            new_radius = np.random.uniform(3.0, 6.0)
+            new_origin = world.origin + np.random.uniform(-4.5, 4.5, size=2)
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
-            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*new_radius) for ang in self.angs]
-            temp_pts.append(new_origin)
-            # temp_pts.append(np.random.normal(new_origin[0], 0.15, size=2))
+            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
+            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
 
-        
+            # temp_pts.append(new_origin)
+            # temp_pts.append(np.random.normal(new_origin[0], 0.15, size=2))
+            temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+
+            # temp_pts.append(new_origin)
+
         # properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
         # roperties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
-
 
         # set initial states
         for i, agent in enumerate(world.agents):
