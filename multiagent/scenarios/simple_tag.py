@@ -60,10 +60,9 @@ class Scenario(BaseScenario):
             self.landmark_pos = [np.array([0.25, 1.2]), np.array([0.7, 0.45])]
 
         # initial predator positions
-        self.angs = np.linspace(0, 2*math.pi, self.n_preds, endpoint=False)
+        self.angles = np.linspace(0, 2*math.pi, self.n_preds, endpoint=False)
         self.radius = radius
         self.pred_init = pred_init
-
             
         # gaussian noise
         self.noise = noise
@@ -77,41 +76,25 @@ class Scenario(BaseScenario):
 
 
     def reset_world(self, world):
-        if self.pred_init == 'circle':
-            # init around circle
-            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
-            temp_pts.append(world.origin)
-
-            # example 2
-            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*6.0) for ang in self.angs]
-            # temp_pts.append(world.origin)
-
-            # example 3
-            # new_origin = world.origin + np.array([4.0, 4.0])
-            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*3.5) for ang in self.angs]
-            # temp_pts.append(new_origin)
-
-            # example 4 -- radius 5.0 in top left
-            # new_origin = world.origin + np.array([-2.0, 3.0])
-            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*5.0) for ang in self.angs]
-            # temp_pts.append(new_origin)
-
-            # add some noise to prey init (not exactly in middle)
-            # temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+        if self.pred_init == 'circle': 
+            world.angles = self.angles
+            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            noise = np.random.normal(0.0, 0.1, size=2)
+            temp_pts.append(world.origin + noise)
 
         elif self.pred_init == 'rand-circ':
-            # self.angs += np.random.uniform(0, math.pi)
-            new_origin = world.origin + np.random.uniform(-world.size, world.size, size=2)
+            # init around random circle
+            self.angles += np.random.uniform(0, 2*math.pi)
+            self.angles %= 2*math.pi
+            world.angles = self.angles 
+
+            # new_origin = world.origin + np.random.uniform(-world.size, world.size, size=2)
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
-            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
-            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angs]
-
-            # temp_pts.append(new_origin)
+            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
             noise = np.random.normal(0.0, 0.1, size=2)
-            temp_pts.append(new_origin + noise)
-            # temp_pts.append(np.random.normal(world.origin[0], 0.15, size=2))
+            temp_pts.append(world.origin + noise)
 
-            # temp_pts.append(new_origin)
 
         # properties for agents
         for i, agent in enumerate(world.agents):
