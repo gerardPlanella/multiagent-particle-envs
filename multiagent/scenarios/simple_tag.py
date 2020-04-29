@@ -78,22 +78,25 @@ class Scenario(BaseScenario):
     def reset_world(self, world):
         if self.pred_init == 'circle': 
             world.angles = self.angles
-            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            new_origin = world.origin + np.array([-1.0, 1.0])
+            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
             noise = np.random.normal(0.0, 0.1, size=2)
-            temp_pts.append(world.origin + noise)
-
+            temp_pts.append(new_origin + noise)
+            # temp_pts.append(world.origin + noise)
         elif self.pred_init == 'rand-circ':
             # init around random circle
             self.angles += np.random.uniform(0, 2*math.pi)
             self.angles %= 2*math.pi
             world.angles = self.angles 
-
-            # new_origin = world.origin + np.random.uniform(-world.size, world.size, size=2)
+            new_origin = world.origin + np.random.uniform(-world.size/2, world.size/2, size=2)
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
-            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
-            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
             noise = np.random.normal(0.0, 0.1, size=2)
-            temp_pts.append(world.origin + noise)
+            # temp_pts.append(world.origin + noise)
+            temp_pts.append(new_origin + noise)
+
 
 
         # properties for agents
