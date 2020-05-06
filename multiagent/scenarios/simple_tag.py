@@ -95,7 +95,7 @@ class Scenario(BaseScenario):
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
             temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
             # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
-            noise = np.random.normal(0.0, 0.1, size=2)
+            noise = np.random.normal(0.0, 0.05, size=2)
             # temp_pts.append(world.origin + noise)
             temp_pts.append(new_origin + noise)
 
