@@ -29,7 +29,9 @@ class Scenario(BaseScenario):
             # agent.silent = False
             agent.adversary = True if i < num_adversaries else False
             agent.silent = False if agent.adversary else True
-            agent.size = 0.075 if agent.adversary else 0.05
+            # agent.size = 0.075 if agent.adversary else 0.05
+            agent.size = 0.03 if agent.adversary else 0.02
+
             agent.accel = 3.0 if agent.adversary else 3.0
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
