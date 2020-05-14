@@ -78,6 +78,8 @@ class Scenario(BaseScenario):
 
 
     def reset_world(self, world):
+        world.origin = np.array([world.size/2, world.size/2])
+
         if self.pred_init == 'circle': 
             world.angles = self.angles
             new_origin = world.origin + np.array([-1.0, 1.0])
@@ -95,8 +97,9 @@ class Scenario(BaseScenario):
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
             # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
             temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
-            noise = np.random.normal(0.0, 0.05, size=2)
-            temp_pts.append(world.origin + noise)
+            # noise = np.random.normal(0.0, 0.05, size=2)
+            # temp_pts.append(world.origin + noise)
+            temp_pts.append(world.origin)
             # temp_pts.append(new_origin + noise)
 
 
