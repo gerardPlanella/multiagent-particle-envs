@@ -29,8 +29,8 @@ class Scenario(BaseScenario):
             # agent.silent = False
             agent.adversary = True if i < num_adversaries else False
             agent.silent = False if agent.adversary else True
-            # agent.size = 0.075 if agent.adversary else 0.05
-            agent.size = 0.03 if agent.adversary else 0.02
+            agent.size = 0.075 if agent.adversary else 0.05
+            # agent.size = 0.03 if agent.adversary else 0.02
 
             agent.accel = 3.0 if agent.adversary else 3.0
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
@@ -91,13 +91,13 @@ class Scenario(BaseScenario):
             self.angles += np.random.uniform(0, 2*math.pi)
             self.angles %= 2*math.pi
             world.angles = self.angles 
-            new_origin = world.origin + np.random.uniform(-world.size/2, world.size/2, size=2)
+            # new_origin = world.origin + np.random.uniform(-world.size/2, world.size/2, size=2)
             # print('origin = {}, radius = {}'.format(new_origin, new_radius))
-            temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
-            # temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            # temp_pts = [new_origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
+            temp_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*self.radius) for ang in self.angles]
             noise = np.random.normal(0.0, 0.05, size=2)
-            # temp_pts.append(world.origin + noise)
-            temp_pts.append(new_origin + noise)
+            temp_pts.append(world.origin + noise)
+            # temp_pts.append(new_origin + noise)
 
 
 
