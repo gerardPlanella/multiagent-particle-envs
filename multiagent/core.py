@@ -3,12 +3,10 @@ import numpy as np
 # physical/external base state of all entites
 class EntityState(object):
     def __init__(self):
-        # physical position
+        # physical properties (position, velocity)
         self.p_pos = None
-        self.real_pos = None
-
-        # physical velocity
         self.p_vel = None
+
         # currently in collision
         self.in_collision = None
 
@@ -18,6 +16,7 @@ class AgentState(EntityState):
         super(AgentState, self).__init__()
         # communication utterance
         self.c = None
+
 
 # action of the agent
 class Action(object):
@@ -48,7 +47,7 @@ class Entity(object):
         # state
         self.state = EntityState()
         # mass
-        self.initial_mass = 1.0
+        self.initial_mass = 0.1
 
     @property
     def mass(self):
@@ -84,6 +83,8 @@ class Agent(Entity):
         self.movable = True
         # cannot send communication signals
         self.silent = False
+        # capture
+        self.captured = None
         # cannot observe the world
         self.blind = False
         # physical motor noise amount
@@ -106,6 +107,7 @@ class World(object):
         # list of agents and entities (can change at execution-time!)
         self.agents = []
         self.landmarks = []
+        # self.curr_landmarks = [] # distinguish between all landmarks and those being used this epoch
         self.walls = []
         # communication channel dimensionality
         self.dim_c = 0
@@ -122,15 +124,26 @@ class World(object):
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
 
-        self.size = 2.0
-        self.bounded = None
-        self.discrete_actions = True
-        self.tiny = False
+        # self.size = 2.0
+        # self.bounded = None
+        # self.discrete_actions = True
+        # self.tiny = False
 
     # return all entities in the world
     @property
     def entities(self):
         return self.agents + self.landmarks
+
+    # return all active entities in the world
+    @property
+    def active_entities(self):
+        # return self.active_agents + self.curr_landmarks
+        return self.active_agents + self.landmarks
+
+    # return all active agents controllable by external policies
+    @property
+    def active_agents(self):
+        return [agent for agent in self.agents if not agent.captured]
 
     # return all agents controllable by external policies
     @property
@@ -206,7 +219,7 @@ class World(object):
     def integrate_state(self, p_force, coll):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
-            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
+            entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             
@@ -216,22 +229,23 @@ class World(object):
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             
-            entity.state.real_pos += entity.state.p_vel * self.dt
+            entity.state.p_pos += entity.state.p_vel * self.dt
 
             # entity is in collision
             entity.state.in_collision = True if coll[i] == True else False
 
-            if not self.bounded:
-                entity.state.p_pos = entity.state.real_pos % self.size
-
-
     def update_agent_state(self, agent):
+        if agent.captured:
+            # agent.movable = False
+            agent.collide = False
+            agent.silent = True
+
         # set communication state (directly for now)
         if agent.silent:
             agent.state.c = np.zeros(self.dim_c)
         else:
             noise = np.random.randn(*agent.action.c.shape) * agent.c_noise if agent.c_noise else 0.0
-            agent.state.c = agent.action.c + noise      
+            agent.state.c = agent.action.c + noise
 
     # get collision forces for any contact between two entities
     def get_entity_collision_force(self, entity_a, entity_b):
@@ -288,7 +302,7 @@ class World(object):
         # softmax penetration
         k = self.contact_margin
         penetration = np.logaddexp(0, -(dist - dist_min)/k)*k
-
+        
         force_mag = self.contact_force * delta_pos / dist * penetration
         force = np.zeros(2)
         force[perp_dim] = np.cos(theta) * force_mag

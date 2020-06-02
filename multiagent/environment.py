@@ -22,6 +22,9 @@ class MultiAgentEnv(gym.Env):
         self.agents = self.world.policy_agents
         # set required vectorized gym env property
         self.n = len(world.policy_agents)
+        self.num_preds = len([agent for agent in self.agents if agent.adversary])
+        self.num_prey = len([agent for agent in self.agents if not agent.adversary])
+
         # scenario callbacks
         self.reset_callback = reset_callback
         self.reward_callback = reward_callback
@@ -86,15 +89,21 @@ class MultiAgentEnv(gym.Env):
             self.viewers = [None] * self.n
         self._reset_render()
 
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
     def step(self, action_n):
         obs_n = []
         reward_n = []
         done_n = []
 
-        info_n = {
-            'coll_n': [],   # count collisions
-            'bound_n': []   # count boundary hits
-        }
+        # info_n = {
+        #     'coll_n': [],   # count collisions
+        #     'bound_n': []   # count boundary hits
+        # }
+        info_n = {'n': []}
+
 
         self.agents = self.world.policy_agents
 
@@ -111,10 +120,12 @@ class MultiAgentEnv(gym.Env):
             reward_n.append(self._get_reward(agent))
             done_n.append(self._get_done(agent))
 
-            coll, bound = self._get_info(agent)
+            # coll, bound = self._get_info(agent)
 
-            info_n['coll_n'].append(coll)
-            info_n['bound_n'].append(bound)
+            # info_n['coll_n'].append(coll)
+            # info_n['bound_n'].append(bound)
+            info_n['n'].append(self._get_info(agent))
+
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
@@ -148,7 +159,6 @@ class MultiAgentEnv(gym.Env):
         return self.observation_callback(agent, self.world)
 
     # get dones for a particular agent
-    # unused right now -- agents are allowed to go beyond the viewing screen
     def _get_done(self, agent):
         if self.done_callback is None:
             return False
@@ -245,6 +255,7 @@ class MultiAgentEnv(gym.Env):
                 #from gym.envs.classic_control import rendering
                 # from multiagent import rendering
                 self.viewers[i] = rendering.Viewer(700,700)
+                
 
         # create rendering geometry
         if self.render_geoms is None:
@@ -254,6 +265,7 @@ class MultiAgentEnv(gym.Env):
             self.render_geoms = []
             self.render_geoms_xform = []
             for entity in self.world.entities:
+            # for entity in self.world.active_entities:
                 geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
                 if 'agent' in entity.name:
@@ -288,16 +300,13 @@ class MultiAgentEnv(gym.Env):
         for i in range(len(self.viewers)):
             # from multiagent import rendering
             # update bounds to center around agent
-            # cam_range = 1
-
-            cam_range = self.world.size / 2
-
+            cam_range = self.world.size / 2 + 1
+            # cam_range = self.world.size
 
             if self.shared_viewer:
                 # pos = np.zeros(self.world.dim_p)
                 # pos = np.ones(self.world.dim_p)
                 pos = np.array([self.world.size / 2, self.world.size / 2])
-
             else:
                 pos = self.agents[i].state.p_pos
             self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
@@ -306,7 +315,9 @@ class MultiAgentEnv(gym.Env):
                 self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
 
                 if isinstance(entity, Agent):
-                    if entity.state.in_collision and not entity.adversary:
+                    if entity.captured:
+                    # if entity.state.in_collision and not entity.adversary:
+
                         self.render_geoms[e].set_color(0.0, 0.0, 0.0, 1.0)
                     else:
                         self.render_geoms[e].set_color(*entity.color, 0.5)

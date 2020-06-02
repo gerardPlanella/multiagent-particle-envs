@@ -18,8 +18,6 @@ class Scenario(BaseScenario):
         num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 0
-        # num_landmarks = 2
-
 
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
