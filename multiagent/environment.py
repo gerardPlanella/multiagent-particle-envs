@@ -132,6 +132,19 @@ class MultiAgentEnv(gym.Env):
         if self.shared_reward:
             reward_n = [reward] * self.n
 
+        # if self.shared_reward:
+        #     # predators and prey both share rewards
+        #     pred_reward = np.sum(reward_n[:self.num_preds])
+        #     prey_reward = np.sum(reward_n[-self.num_prey:])
+        #     reward_n = [reward] * self.n
+
+        # update actives in world
+        self.world.update_actives()
+        for ag in self.world.policy_agents:
+            print(ag.active)
+
+        
+
         return obs_n, reward_n, done_n, info_n
 
     def reset(self):
@@ -300,13 +313,13 @@ class MultiAgentEnv(gym.Env):
         for i in range(len(self.viewers)):
             # from multiagent import rendering
             # update bounds to center around agent
-            cam_range = self.world.size / 2 + 1
+            cam_range = self.world.size / 2 + 0.1
             # cam_range = self.world.size
 
             if self.shared_viewer:
-                # pos = np.zeros(self.world.dim_p)
+                pos = np.zeros(self.world.dim_p)
                 # pos = np.ones(self.world.dim_p)
-                pos = np.array([self.world.size / 2, self.world.size / 2])
+                # pos = np.array([self.world.size / 2, self.world.size / 2])
             else:
                 pos = self.agents[i].state.p_pos
             self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)

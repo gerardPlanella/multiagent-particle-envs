@@ -21,10 +21,11 @@ class Scenario(BaseScenario):
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
+            agent.active = True
             agent.collide = True
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
-            agent.captured = False if not agent.adversary else None
+            agent.captured = False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 4.0
             agent.max_speed = 1.0 if agent.adversary else 1.3
@@ -33,6 +34,7 @@ class Scenario(BaseScenario):
         world.landmarks = [Landmark() for i in range(num_landmarks)]
         for i, landmark in enumerate(world.landmarks):
             landmark.name = 'landmark %d' % i
+            landmark.active = True
             landmark.collide = True
             landmark.movable = False
             landmark.size = np.random.uniform(0.25, 0.75)
@@ -43,10 +45,10 @@ class Scenario(BaseScenario):
         # world.curr_landmarks = np.random.choice(world.landmarks, n_marks).tolist()
 
         # add border walls
-        left_wall = Wall(orient='V', axis_pos=10.25, endpoints=(-0.75, 10.75), width=0.75)
-        right_wall = Wall(orient='V', axis_pos=-0.25, endpoints=(-0.75, 10.75), width=0.75)
-        top_wall = Wall(axis_pos=10.25, endpoints=(-0.75, 10.75), width=0.75)
-        bot_wall = Wall(axis_pos=-0.25, endpoints=(-0.75, 10.75), width=0.75)
+        left_wall = Wall(orient='V', axis_pos=world.size/2 + 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        right_wall = Wall(orient='V', axis_pos=-world.size/2 - 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        top_wall = Wall(axis_pos=world.size/2 + 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        bot_wall = Wall(axis_pos=-world.size/2 - 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
         world.walls = [left_wall, top_wall, bot_wall, right_wall]
 
         # discrete actions
@@ -64,9 +66,12 @@ class Scenario(BaseScenario):
             # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
+
         # set random initial states
         for agent in world.agents:
-            agent.state.p_pos = np.random.uniform(0, world.size-0.05, world.dim_p)
+            agent.active = True
+            agent.captured = False
+            agent.state.p_pos = np.random.uniform(-world.size/2 +0.05, world.size/2 -0.05, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
@@ -81,8 +86,9 @@ class Scenario(BaseScenario):
 
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = np.random.uniform(0, world.size-0.1, world.dim_p)
+                landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
+
 
 
     def benchmark_data(self, agent, world):
@@ -116,37 +122,44 @@ class Scenario(BaseScenario):
         return main_reward
 
     def agent_reward(self, agent, world):
-        # Agents are negatively rewarded if caught by adversaries
-        rew = 0.1
-        shape = False
-        adversaries = self.adversaries(world)
-        if shape:  # reward can optionally be shaped (increased reward for increased distance from adversary)
-            for adv in adversaries:
-                rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos)))
-        if agent.collide:
-            for a in adversaries:
-                if self.is_collision(a, agent):
-                    agent.captured = True # NOTE: collision checking should really be done in core.py
-                    rew -= 100
-        
-        return rew
+        if agent.active:
+            # Agents are negatively rewarded if caught by adversaries
+            rew = 0.1
+            shape = False
+            adversaries = self.adversaries(world)
+            if shape:  # reward can optionally be shaped (increased reward for increased distance from adversary)
+                for adv in adversaries:
+                    rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos))) * adv.active
+            if agent.collide:
+                for a in adversaries:
+                    if a.active and self.is_collision(a, agent):
+                        agent.captured = True # NOTE: collision checking should really be done in core.py
+                        rew -= 50
+            
+            return rew
+        else:
+            return 0.0
 
     def adversary_reward(self, agent, world):
-        # Adversaries are rewarded for collisions with agents
-        rew = -0.1
-        shape = False
-        agents = self.good_agents(world)
-        adversaries = self.adversaries(world)
-        if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
-            for adv in adversaries:
-                rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
-        if agent.collide:
-            for ag in agents:
+        if agent.active:
+            # Adversaries are rewarded for collisions with agents
+            rew = -0.1
+            shape = True
+            agents = self.good_agents(world)
+            adversaries = self.adversaries(world)
+            if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
                 for adv in adversaries:
-                    if self.is_collision(ag, adv):
-                        ag.captured = True  # NOTE: collision checking should really be done in core.py
-                        rew += 100
-        return rew
+                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents if a.active])
+            if agent.collide:
+                for ag in agents:
+                    for adv in adversaries:
+                        if ag.active and self.is_collision(ag, adv):
+                            ag.captured = True  # NOTE: collision checking should really be done in core.py
+                            rew += 50
+
+            return rew
+        else:
+            return 0.0
 
     def terminal(self, agent, world):
         if agent.adversary:
@@ -196,6 +209,7 @@ class Scenario(BaseScenario):
         for other in world.agents:
             if other is agent: continue
             comm.append(other.state.c)
+            # TODO: WHAT HAPPENS IF YOU DON'T USE PLACEHOLDER? STILL LEARNS?
             if other.captured:
                 other_pos.append(np.array([-1000.0, -1000.0])) # TODO: replace with image observation
             else:

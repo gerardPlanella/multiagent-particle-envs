@@ -44,3 +44,7 @@ if __name__ == '__main__':
         for agent in env.world.agents:
             if env._get_reward(agent) != 0: 
                 print(agent.name + " reward: %0.3f" % env._get_reward(agent))
+
+        if all(done_n):
+            print('DONE')
+            break

@@ -33,6 +33,8 @@ class Entity(object):
         self.name = ''
         # properties:
         self.size = 0.050
+        # active in gameplay
+        self.active = True
         # entity can move / be pushed
         self.movable = False
         # entity collides with others
@@ -138,12 +140,7 @@ class World(object):
     @property
     def active_entities(self):
         # return self.active_agents + self.curr_landmarks
-        return self.active_agents + self.landmarks
-
-    # return all active agents controllable by external policies
-    @property
-    def active_agents(self):
-        return [agent for agent in self.agents if not agent.captured]
+        return self.active_agents + self.active_landmarks
 
     # return all agents controllable by external policies
     @property
@@ -154,6 +151,25 @@ class World(object):
     @property
     def scripted_agents(self):
         return [agent for agent in self.agents if agent.action_callback is not None]
+
+    # return all active agents controllable by external policies
+    @property
+    def active_agents(self):
+        return [agent for agent in self.agents if agent.active]
+
+    # return all active landmarks
+    @property
+    def active_landmarks(self):
+        return [landmark for landmark in self.landmarks if landmark.active]
+
+    def update_actives(self):
+        # allows for any entity to be turned off or on by gameplay
+        # (e.g. agents that are captured, resources that need to regenerate)
+        for a in self.active_agents:
+            a.active = False if a.captured else True
+            # regenerating agent
+            # a.active = False agent.captured and agent.captured_itrs < agent.max_capture_itrs else True
+
 
     # update state of the world
     def step(self):
@@ -235,8 +251,10 @@ class World(object):
             entity.state.in_collision = True if coll[i] == True else False
 
     def update_agent_state(self, agent):
-        if agent.captured:
-            # agent.movable = False
+        if agent.active:
+            agent.collide = True
+            agent.silent = False
+        else:
             agent.collide = False
             agent.silent = True
 

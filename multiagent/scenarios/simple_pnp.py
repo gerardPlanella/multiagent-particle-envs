@@ -156,3 +156,7 @@ class Scenario(BaseScenario):
                 other_vel.append(other.state.p_vel)
         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
         return obs
+
+
+    def terminal(self, agent, world):
+        return False
