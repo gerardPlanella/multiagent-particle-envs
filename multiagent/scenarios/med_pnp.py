@@ -28,7 +28,7 @@ class Scenario(BaseScenario):
             agent.captured = False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 4.0
-            agent.max_speed = 1.0 if agent.adversary else 1.3
+            agent.max_speed = 1.0 if agent.adversary else 1.4
 
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
@@ -45,10 +45,10 @@ class Scenario(BaseScenario):
         # world.curr_landmarks = np.random.choice(world.landmarks, n_marks).tolist()
 
         # add border walls
-        left_wall = Wall(orient='V', axis_pos=world.size/2 + 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
-        right_wall = Wall(orient='V', axis_pos=-world.size/2 - 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
-        top_wall = Wall(axis_pos=world.size/2 + 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
-        bot_wall = Wall(axis_pos=-world.size/2 - 0.25, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        left_wall = Wall(orient='V', axis_pos=world.size/2 + 0.5, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        right_wall = Wall(orient='V', axis_pos=-world.size/2 - 0.5, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        top_wall = Wall(axis_pos=world.size/2 + 0.5, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
+        bot_wall = Wall(axis_pos=-world.size/2 - 0.5, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
         world.walls = [left_wall, top_wall, bot_wall, right_wall]
 
         # discrete actions
@@ -67,11 +67,20 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
+        pred_init_pts = [np.array([-world.size/2 + 0.05, -world.size/2 + 0.05]),
+                         np.array([-world.size/2 + 0.05, world.size/2 - 0.05]),
+                         np.array([world.size/2 - 0.05, -world.size/2 + 0.05]),
+                         np.array([world.size/2 - 0.05, world.size/2 - 0.05]),
+                         np.array([-world.size/2 + 0.05, 0])]
+
         # set random initial states
-        for agent in world.agents:
+        for i, agent in enumerate(world.agents):
             agent.active = True
             agent.captured = False
-            agent.state.p_pos = np.random.uniform(-world.size/2 +0.05, world.size/2 -0.05, world.dim_p)
+            if agent.adversary:
+                agent.state.p_pos = pred_init_pts[i]
+            else:
+                agent.state.p_pos = np.random.uniform(-world.size/2 +0.05, world.size/2 -0.05, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
@@ -113,9 +122,15 @@ class Scenario(BaseScenario):
     def good_agents(self, world):
         return [agent for agent in world.agents if not agent.adversary]
 
+    def active_good_agents(self, world):
+        return [agent for agent in world.agents if not agent.adversary and agent.active]
+
     # return all adversarial agents
     def adversaries(self, world):
         return [agent for agent in world.agents if agent.adversary]
+
+    def active_adversaries(self, world):
+        return [agent for agent in world.agents if agent.adversary and agent.active]
 
     def reward(self, agent, world):
         main_reward = self.adversary_reward(agent, world) if agent.adversary else self.agent_reward(agent, world)
@@ -126,16 +141,15 @@ class Scenario(BaseScenario):
             # Agents are negatively rewarded if caught by adversaries
             rew = 0.1
             shape = False
-            adversaries = self.adversaries(world)
+            adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (increased reward for increased distance from adversary)
                 for adv in adversaries:
-                    rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos))) * adv.active
+                    rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos)))
             if agent.collide:
                 for a in adversaries:
-                    if a.active and self.is_collision(a, agent):
-                        agent.captured = True # NOTE: collision checking should really be done in core.py
+                    if self.is_collision(a, agent):
+                        agent.captured = True 
                         rew -= 50
-            
             return rew
         else:
             return 0.0
@@ -145,16 +159,19 @@ class Scenario(BaseScenario):
             # Adversaries are rewarded for collisions with agents
             rew = -0.1
             shape = True
-            agents = self.good_agents(world)
-            adversaries = self.adversaries(world)
+            agents = self.active_good_agents(world)
+            adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
                 for adv in adversaries:
-                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents if a.active])
+                    if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
+                        rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                    # else:
+                        # print(a)
             if agent.collide:
                 for ag in agents:
                     for adv in adversaries:
-                        if ag.active and self.is_collision(ag, adv):
-                            ag.captured = True  # NOTE: collision checking should really be done in core.py
+                        if self.is_collision(ag, adv):
+                            ag.captured = True 
                             rew += 50
 
             return rew
@@ -168,30 +185,6 @@ class Scenario(BaseScenario):
         else:
             # prey done if caught
             return agent.captured
-
-    # def observation(self, agent, world):
-    #     # get positions of all entities in this agent's reference frame
-    #     entity_pos = []
-    #     # for entity in world.curr_landmarks: # TODO: FOR DYNAMIC LANDMARK GENERATION
-    #     for entity in world.landmarks:
-    #         if not entity.boundary:
-    #             entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-
-    #     # communication of all other agents
-    #     comm = []
-    #     other_pos = []
-    #     other_vel = []
-    #     for other in world.agents:
-    #         if other is agent: continue
-    #         comm.append(other.state.c)
-    #         if other.captured:
-    #             other_pos.append(np.array([-1000.0, -1000.0])) # TODO: replace with image observation
-    #         else:
-    #             other_pos.append(other.state.p_pos - agent.state.p_pos)
-    #         if not other.adversary:
-    #             other_vel.append(other.state.p_vel)
-    #     obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
-    #     return obs
 
 
     def observation(self, agent, world):
@@ -210,10 +203,10 @@ class Scenario(BaseScenario):
             if other is agent: continue
             comm.append(other.state.c)
             # TODO: WHAT HAPPENS IF YOU DON'T USE PLACEHOLDER? STILL LEARNS?
-            if other.captured:
-                other_pos.append(np.array([-1000.0, -1000.0])) # TODO: replace with image observation
-            else:
-                other_pos.append(other.state.p_pos)
+            # if other.captured:
+            #     other_pos.append(np.array([-1000.0, -1000.0])) # TODO: replace with image observation
+            # else:
+            other_pos.append(other.state.p_pos)
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
 

@@ -140,10 +140,6 @@ class MultiAgentEnv(gym.Env):
 
         # update actives in world
         self.world.update_actives()
-        for ag in self.world.policy_agents:
-            print(ag.active)
-
-        
 
         return obs_n, reward_n, done_n, info_n
 
