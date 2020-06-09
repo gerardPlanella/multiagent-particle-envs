@@ -95,7 +95,7 @@ class Scenario(BaseScenario):
 
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1, world.dim_p)
+                landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
 
 
@@ -163,8 +163,8 @@ class Scenario(BaseScenario):
             adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
                 for adv in adversaries:
-                    if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
-                        rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                    # if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
+                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
                     # else:
                         # print(a)
             if agent.collide:
@@ -210,7 +210,15 @@ class Scenario(BaseScenario):
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
 
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+        if agent.adversary:
+            pos = agent.state.p_pos / world.size
+            entity_pos = [e / world.size for e in entity_pos]
+            other_pos = [o / world.size for o in other_pos]
+        else:
+            pos = agent.state.p_pos
+
+        # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+        obs = np.concatenate([agent.state.p_vel] + [pos] + entity_pos + other_pos + other_vel)
         
         # if not agent.adversary:
             # print(agent.state.p_vel)
