@@ -148,6 +148,7 @@ class Scenario(BaseScenario):
             if agent.collide:
                 for a in adversaries:
                     if self.is_collision(a, agent):
+                        # print('Prey captured')
                         agent.captured = True 
                         rew -= 50
             return rew
@@ -163,14 +164,15 @@ class Scenario(BaseScenario):
             adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
                 for adv in adversaries:
-                    # if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
-                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                    if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
+                        rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
                     # else:
                         # print(a)
             if agent.collide:
                 for ag in agents:
                     for adv in adversaries:
                         if self.is_collision(ag, adv):
+                            # print('Predator captured')
                             ag.captured = True 
                             rew += 50
 
@@ -214,6 +216,7 @@ class Scenario(BaseScenario):
             pos = agent.state.p_pos / world.size
             entity_pos = [e / world.size for e in entity_pos]
             other_pos = [o / world.size for o in other_pos]
+            # pos = agent.state.p_pos
         else:
             pos = agent.state.p_pos
 

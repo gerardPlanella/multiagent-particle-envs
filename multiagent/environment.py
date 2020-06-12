@@ -1,6 +1,7 @@
 import gym
 from gym import spaces
 from gym.envs.registration import EnvSpec
+from gym.utils import seeding
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 from multiagent.core import Agent, Landmark, Wall
@@ -97,15 +98,19 @@ class MultiAgentEnv(gym.Env):
         obs_n = []
         reward_n = []
         done_n = []
-
-        # info_n = {
-        #     'coll_n': [],   # count collisions
-        #     'bound_n': []   # count boundary hits
-        # }
         info_n = {'n': []}
 
 
+
         self.agents = self.world.policy_agents
+
+        # print('active?')
+        # for agent in self.agents:
+        #     print(agent.active)
+
+        # print('captured?')
+        # for agent in self.agents:
+        #     print(agent.captured)
 
         # set action for each agent
         for i, agent in enumerate(self.agents):
@@ -115,16 +120,12 @@ class MultiAgentEnv(gym.Env):
         self.world.step()
 
         # record observation for each agent
+        # print('done?')
         for agent in self.agents:
             obs_n.append(self._get_obs(agent))
             reward_n.append(self._get_reward(agent))
-            done_n.append(self._get_done(agent))
-
-            # coll, bound = self._get_info(agent)
-
-            # info_n['coll_n'].append(coll)
-            # info_n['bound_n'].append(bound)
             info_n['n'].append(self._get_info(agent))
+
 
 
         # all agents get total reward in cooperative case
@@ -132,14 +133,25 @@ class MultiAgentEnv(gym.Env):
         if self.shared_reward:
             reward_n = [reward] * self.n
 
-        # if self.shared_reward:
-        #     # predators and prey both share rewards
-        #     pred_reward = np.sum(reward_n[:self.num_preds])
-        #     prey_reward = np.sum(reward_n[-self.num_prey:])
-        #     reward_n = [reward] * self.n
-
         # update actives in world
         self.world.update_actives()
+
+
+        # print('captured')
+        # for agent in self.agents:
+        #     print(agent.captured)
+
+        # print('active')
+        # for agent in self.agents:
+        #     print(agent.active)
+
+        # print('done')        
+        for agent in self.agents:
+            d = self._get_done(agent)
+            # print(d)
+            done_n.append(d)
+
+        # print()
 
         return obs_n, reward_n, done_n, info_n
 
