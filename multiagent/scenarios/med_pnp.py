@@ -80,7 +80,7 @@ class Scenario(BaseScenario):
             if agent.adversary:
                 agent.state.p_pos = pred_init_pts[i]
             else:
-                agent.state.p_pos = np.random.uniform(-world.size/2 +0.05, world.size/2 -0.05, world.dim_p)
+                agent.state.p_pos = np.random.uniform(-world.size/2 + 0.75, world.size/2 - 0.75, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
@@ -148,7 +148,6 @@ class Scenario(BaseScenario):
             if agent.collide:
                 for a in adversaries:
                     if self.is_collision(a, agent):
-                        # print('Prey captured')
                         agent.captured = True 
                         rew -= 50
             return rew
@@ -164,15 +163,14 @@ class Scenario(BaseScenario):
             adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
                 for adv in adversaries:
-                    if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
-                        rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                    # if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
+                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
                     # else:
                         # print(a)
             if agent.collide:
                 for ag in agents:
                     for adv in adversaries:
                         if self.is_collision(ag, adv):
-                            # print('Predator captured')
                             ag.captured = True 
                             rew += 50
 
@@ -205,10 +203,10 @@ class Scenario(BaseScenario):
             if other is agent: continue
             comm.append(other.state.c)
             # TODO: WHAT HAPPENS IF YOU DON'T USE PLACEHOLDER? STILL LEARNS?
-            # if other.captured:
-            #     other_pos.append(np.array([-1000.0, -1000.0])) # TODO: replace with image observation
-            # else:
-            other_pos.append(other.state.p_pos)
+            if other.captured:
+                other_pos.append(np.array([-1.0, -1.0])) # TODO: replace with image observation
+            else:
+                other_pos.append(other.state.p_pos)
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
 

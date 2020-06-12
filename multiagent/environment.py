@@ -100,17 +100,7 @@ class MultiAgentEnv(gym.Env):
         done_n = []
         info_n = {'n': []}
 
-
-
         self.agents = self.world.policy_agents
-
-        # print('active?')
-        # for agent in self.agents:
-        #     print(agent.active)
-
-        # print('captured?')
-        # for agent in self.agents:
-        #     print(agent.captured)
 
         # set action for each agent
         for i, agent in enumerate(self.agents):
@@ -120,13 +110,11 @@ class MultiAgentEnv(gym.Env):
         self.world.step()
 
         # record observation for each agent
-        # print('done?')
         for agent in self.agents:
             obs_n.append(self._get_obs(agent))
             reward_n.append(self._get_reward(agent))
             info_n['n'].append(self._get_info(agent))
-
-
+            done_n.append(self._get_done(agent))
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
@@ -135,23 +123,6 @@ class MultiAgentEnv(gym.Env):
 
         # update actives in world
         self.world.update_actives()
-
-
-        # print('captured')
-        # for agent in self.agents:
-        #     print(agent.captured)
-
-        # print('active')
-        # for agent in self.agents:
-        #     print(agent.active)
-
-        # print('done')        
-        for agent in self.agents:
-            d = self._get_done(agent)
-            # print(d)
-            done_n.append(d)
-
-        # print()
 
         return obs_n, reward_n, done_n, info_n
 

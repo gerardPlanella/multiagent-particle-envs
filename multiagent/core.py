@@ -165,11 +165,10 @@ class World(object):
     def update_actives(self):
         # allows for any entity to be turned off or on by gameplay
         # (e.g. agents that are captured, resources that need to regenerate)
-        for a in self.agents:
+        for a in self.active_agents:
             a.active = False if a.captured else True
             # regenerating agent
             # a.active = False agent.captured and agent.captured_itrs < agent.max_capture_itrs else True
-
 
     # update state of the world
     def step(self):
