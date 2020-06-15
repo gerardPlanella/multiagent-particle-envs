@@ -158,15 +158,12 @@ class Scenario(BaseScenario):
         if agent.active:
             # Adversaries are rewarded for collisions with agents
             rew = -0.1
-            shape = True
+            shape = False
             agents = self.active_good_agents(world)
             adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
                 for adv in adversaries:
-                    # if len(agents) > 0: # TODO: CORNER CONDITION HERE THAT NEEDS TO BE DEBUGGED THAT MAKES LEN(AGENTS) = 0
                     rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
-                    # else:
-                        # print(a)
             if agent.collide:
                 for ag in agents:
                     for adv in adversaries:
@@ -204,31 +201,23 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             # TODO: WHAT HAPPENS IF YOU DON'T USE PLACEHOLDER? STILL LEARNS?
             if other.captured:
-                other_pos.append(np.array([-1.0, -1.0])) # TODO: replace with image observation
+                other_pos.append(np.array([-10.0, -10.0])) # TODO: replace with image observation
             else:
                 other_pos.append(other.state.p_pos)
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
 
         if agent.adversary:
-            pos = agent.state.p_pos / world.size
-            entity_pos = [e / world.size for e in entity_pos]
-            other_pos = [o / world.size for o in other_pos]
-            # pos = agent.state.p_pos
+            # pos = agent.state.p_pos / world.size
+            # entity_pos = [e / world.size for e in entity_pos]
+            # other_pos = [o / world.size for o in other_pos]
+            pos = agent.state.p_pos
         else:
             pos = agent.state.p_pos
 
         # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
         obs = np.concatenate([agent.state.p_vel] + [pos] + entity_pos + other_pos + other_vel)
-        
-        # if not agent.adversary:
-            # print(agent.state.p_vel)
-            # print(agent.state.p_pos)
-            # # print(entity_pos)
-            # print(other_pos)
-            # # print(len(other_vel))
-            # print('---------------')
-        
+
         return obs
 
     '''
