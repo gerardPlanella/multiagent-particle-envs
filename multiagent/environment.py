@@ -98,7 +98,10 @@ class MultiAgentEnv(gym.Env):
         obs_n = []
         reward_n = []
         done_n = []
-        info_n = {'n': []}
+        info_n = []
+
+        # update actives in world
+        self.world.update_actives()
 
         self.agents = self.world.policy_agents
 
@@ -113,16 +116,13 @@ class MultiAgentEnv(gym.Env):
         for agent in self.agents:
             obs_n.append(self._get_obs(agent))
             reward_n.append(self._get_reward(agent))
-            info_n['n'].append(self._get_info(agent))
+            info_n.append(self._get_info(agent))
             done_n.append(self._get_done(agent))
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
         if self.shared_reward:
             reward_n = [reward] * self.n
-
-        # update actives in world
-        self.world.update_actives()
 
         return obs_n, reward_n, done_n, info_n
 

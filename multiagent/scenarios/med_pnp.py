@@ -101,15 +101,7 @@ class Scenario(BaseScenario):
 
 
     def benchmark_data(self, agent, world):
-        # returns data for benchmarking purposes
-        if agent.adversary:
-            collisions = 0
-            for a in self.good_agents(world):
-                if self.is_collision(a, agent):
-                    collisions += 1
-            return collisions
-        else:
-            return 0
+        return agent.active
 
 
     def is_collision(self, agent1, agent2):
@@ -158,7 +150,7 @@ class Scenario(BaseScenario):
         if agent.active:
             # Adversaries are rewarded for collisions with agents
             rew = -0.1
-            shape = False
+            shape = True
             agents = self.active_good_agents(world)
             adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
