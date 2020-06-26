@@ -37,7 +37,7 @@ class Scenario(BaseScenario):
             landmark.active = True
             landmark.collide = True
             landmark.movable = False
-            landmark.size = np.random.uniform(0.25, 0.75)
+            landmark.size = np.random.uniform(0.25, 0.65)
             landmark.boundary = False
 
         # choose landmarks for first epoch    
@@ -80,7 +80,7 @@ class Scenario(BaseScenario):
             if agent.adversary:
                 agent.state.p_pos = pred_init_pts[i]
             else:
-                agent.state.p_pos = np.random.uniform(-world.size/2 + 0.75, world.size/2 - 0.75, world.dim_p)
+                agent.state.p_pos = np.random.uniform(-world.size/2 + 1.0, world.size/2 - 1.0, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
@@ -95,7 +95,7 @@ class Scenario(BaseScenario):
 
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15, world.dim_p)
+                landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.35, world.size/2 - 0.35, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
 
 
