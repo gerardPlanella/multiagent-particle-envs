@@ -182,29 +182,30 @@ class MultiAgentEnv(gym.Env):
         action = action[0]
 
         if agent.movable:
-            # physical action
-            if self.discrete_action_input:
-                agent.action.u = np.zeros(self.world.dim_p)
-                # process discrete action
-                if action[0] == 1: agent.action.u[0] = -1.0
-                if action[0] == 2: agent.action.u[0] = +1.0
-                if action[0] == 3: agent.action.u[1] = -1.0
-                if action[0] == 4: agent.action.u[1] = +1.0
-            else:
-                if self.force_discrete_action:
-                    d = np.argmax(action)
-                    action[0][:] = 0.0
-                    action[0][d] = 1.0
-                if self.discrete_action_space:
-                    agent.action.u[0] += action[0][1] - action[0][2]
-                    agent.action.u[1] += action[0][3] - action[0][4]
+            if agent.active:
+                # physical action
+                if self.discrete_action_input:
+                    agent.action.u = np.zeros(self.world.dim_p)
+                    # process discrete action
+                    if action[0] == 1: agent.action.u[0] = -1.0
+                    if action[0] == 2: agent.action.u[0] = +1.0
+                    if action[0] == 3: agent.action.u[1] = -1.0
+                    if action[0] == 4: agent.action.u[1] = +1.0
                 else:
-                    agent.action.u = action[0]
+                    if self.force_discrete_action:
+                        d = np.argmax(action)
+                        action[0][:] = 0.0
+                        action[0][d] = 1.0
+                    if self.discrete_action_space:
+                        agent.action.u[0] += action[0][1] - action[0][2]
+                        agent.action.u[1] += action[0][3] - action[0][4]
+                    else:
+                        agent.action.u = action[0]
 
-            sensitivity = 5.0
-            if agent.accel is not None:
-                sensitivity = agent.accel
-            agent.action.u *= sensitivity
+                sensitivity = 5.0
+                if agent.accel is not None:
+                    sensitivity = agent.accel
+                agent.action.u *= sensitivity
             action = action[1:]
 
         if not agent.silent:
