@@ -126,7 +126,8 @@ class World(object):
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
 
-        # self.size = 2.0
+        self.size = None
+        self.level = 0
         # self.bounded = None
         # self.discrete_actions = True
         # self.tiny = False

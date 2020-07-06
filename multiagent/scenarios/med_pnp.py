@@ -4,12 +4,13 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, discrete=True):
+    def make_world(self, curriculum, discrete=True):
         world = World()
 
         # set world properties first
         world.dim_c = 2
         world.size = 10.0
+        world.level = 0 if curriculum else 4
 
         # agent properties
         num_good_agents = 3
@@ -28,7 +29,7 @@ class Scenario(BaseScenario):
             agent.captured = False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 4.0
-            agent.max_speed = 1.0 if agent.adversary else 1.4
+            agent.max_speed = 1.0 if agent.adversary else 1.3
 
         # add landmarks
         world.landmarks = [Landmark() for i in range(num_landmarks)]
@@ -67,11 +68,27 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
-        pred_init_pts = [np.array([-world.size/2 + 0.05, -world.size/2 + 0.05]),
-                         np.array([-world.size/2 + 0.05, world.size/2 - 0.05]),
-                         np.array([world.size/2 - 0.05, -world.size/2 + 0.05]),
-                         np.array([world.size/2 - 0.05, world.size/2 - 0.05]),
-                         np.array([-world.size/2 + 0.05, 0])]
+        if world.level == 0:   
+            pred_bound = 3.5
+            prey_bound = 4.5
+        elif world.level == 1:        
+            pred_bound = 3.0
+            prey_bound = 4.0
+        elif world.level == 2:        
+            pred_bound = 2.5
+            prey_bound = 3.0
+        elif world.level == 3:        
+            pred_bound = 1.25
+            prey_bound = 2.0
+        else:
+            pred_bound = 0.05
+            prey_bound = 1.0
+
+        pred_init_pts = [np.array([-world.size/2 + pred_bound, -world.size/2 + pred_bound]),
+                        np.array([-world.size/2 + pred_bound, world.size/2 - pred_bound]),
+                        np.array([world.size/2 - pred_bound, -world.size/2 + pred_bound]),
+                        np.array([world.size/2 - pred_bound, world.size/2 - pred_bound]),
+                        np.array([-world.size/2 + pred_bound, 0])]
 
         # set random initial states
         for i, agent in enumerate(world.agents):
@@ -80,7 +97,7 @@ class Scenario(BaseScenario):
             if agent.adversary:
                 agent.state.p_pos = pred_init_pts[i]
             else:
-                agent.state.p_pos = np.random.uniform(-world.size/2 + 1.0, world.size/2 - 1.0, world.dim_p)
+                agent.state.p_pos = np.random.uniform(-world.size/2 + prey_bound, world.size/2 - prey_bound, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
