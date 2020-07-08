@@ -10,12 +10,9 @@ class Scenario(BaseScenario):
         # set world properties first
         world.dim_c = 2
         world.size = 10.0
-        world.level = 0 if curriculum else 4
-        # world.level = 4
-
 
         # agent properties
-        num_good_agents = 1
+        num_good_agents = 3
         num_adversaries = 3
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 15
@@ -40,7 +37,7 @@ class Scenario(BaseScenario):
             landmark.active = True
             landmark.collide = True
             landmark.movable = False
-            landmark.size = np.random.uniform(0.35, 0.6)
+            landmark.size = np.random.uniform(0.25, 0.65)
             landmark.boundary = False
 
         # choose landmarks for first epoch    
@@ -103,28 +100,18 @@ class Scenario(BaseScenario):
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
-        landmark_init_pts = [
-            np.array([4.054015, -4.51139905]),
-            np.array([-4.10370804, 0.36195873]),
-            np.array([1.95984979, 1.39413427]),
-            np.array([-3.3288319, 3.62890966]),
-            np.array([-1.54795894, -4.4763568]),
-            np.array([-1.55855363, -3.14317905]),
-            np.array([-1.75482672, -2.82588394]),
-            np.array([-4.34057309, -3.13723603]),
-            np.array([ 4.64193824, -2.87771924]),
-            np.array([ 0.61719114, -1.10018694]),
-            np.array([0.47546935, 4.3833841]),
-            np.array([ 0.29096532, -2.66313494]),
-            np.array([0.54558641, 0.27552597]),
-            np.array([-3.23978418, -3.67931561]),
-            np.array([3.7488089, 1.83948606])
-        ]
+        # TODO: FOR DYNAMIC LANDMARK GENERATION
+        # select between 2 and MAX landmarks
+        # n_marks = np.random.randint(2, len(world.landmarks))
+        # world.curr_landmarks = np.random.choice(world.landmarks, n_marks).tolist()
+        # for i, landmark in enumerate(world.curr_landmarks):
+        #     if not landmark.boundary:
+        #         landmark.state.p_pos = np.random.uniform(0, world.size-0.1, world.dim_p)
+        #         landmark.state.p_vel = np.zeros(world.dim_p)
 
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = landmark_init_pts[i]
-                # landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.35, world.size/2 - 0.35, world.dim_p)
+                landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.35, world.size/2 - 0.35, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p)
 
 
@@ -208,15 +195,10 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
-        entity_sizes = []
         # for entity in world.curr_landmarks: # TODO: FOR DYNAMIC LANDMARK GENERATION
         for entity in world.landmarks:
             if not entity.boundary:
                 entity_pos.append(entity.state.p_pos)
-                # entity_sizes.append(np.array([entity.size]))
-                entity_sizes.append(entity.size)
-                
-
 
         # communication of all other agents
         comm = []
@@ -232,7 +214,8 @@ class Scenario(BaseScenario):
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
 
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel + [entity_sizes])
+        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+
         return obs
 
     '''
