@@ -10,15 +10,12 @@ class Scenario(BaseScenario):
         # set world properties first
         world.dim_c = 2
         world.size = 10.0
-        world.level = 0 if curriculum else 4
-        # world.level = 4
-
 
         # agent properties
         num_good_agents = 1
-        num_adversaries = 3
+        num_adversaries = 1
         num_agents = num_adversaries + num_good_agents
-        num_landmarks = 15
+        num_landmarks = 1
 
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -40,12 +37,8 @@ class Scenario(BaseScenario):
             landmark.active = True
             landmark.collide = True
             landmark.movable = False
-            landmark.size = np.random.uniform(0.35, 0.6)
+            landmark.size = 0.5
             landmark.boundary = False
-
-        # choose landmarks for first epoch    
-        # n_marks = np.random.randint(2, len(world.landmarks))
-        # world.curr_landmarks = np.random.choice(world.landmarks, n_marks).tolist()
 
         # add border walls
         left_wall = Wall(orient='V', axis_pos=world.size/2 + 0.5, endpoints=(-world.size/2 - 0.75, world.size/2 + 0.75), width=0.75)
@@ -66,72 +59,28 @@ class Scenario(BaseScenario):
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
-            # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
-
-        if world.level == 0:   
-            pred_bound = 3.5
-            prey_bound = 4.5
-        elif world.level == 1:        
-            pred_bound = 3.0
-            prey_bound = 4.0
-        elif world.level == 2:        
-            pred_bound = 2.5
-            prey_bound = 3.0
-        elif world.level == 3:        
-            pred_bound = 1.25
-            prey_bound = 2.0
-        else:
-            pred_bound = 0.05
-            prey_bound = 1.0
-
-        pred_init_pts = [np.array([-world.size/2 + pred_bound, -world.size/2 + pred_bound]),
-                        np.array([-world.size/2 + pred_bound, world.size/2 - pred_bound]),
-                        np.array([world.size/2 - pred_bound, -world.size/2 + pred_bound]),
-                        np.array([world.size/2 - pred_bound, world.size/2 - pred_bound]),
-                        np.array([-world.size/2 + pred_bound, 0])]
 
         # set random initial states
         for i, agent in enumerate(world.agents):
             agent.active = True
             agent.captured = False
             if agent.adversary:
-                agent.state.p_pos = pred_init_pts[i]
+                agent.state.p_pos = np.array([2.0, 2.0])
             else:
-                agent.state.p_pos = np.random.uniform(-world.size/2 + prey_bound, world.size/2 - prey_bound, world.dim_p)
+                agent.state.p_pos = np.array([-1.5, -1.5])
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
 
-        landmark_init_pts = [
-            np.array([4.054015, -4.51139905]),
-            np.array([-4.10370804, 0.36195873]),
-            np.array([1.95984979, 1.39413427]),
-            np.array([-3.3288319, 3.62890966]),
-            np.array([-1.54795894, -4.4763568]),
-            np.array([-1.55855363, -3.14317905]),
-            np.array([-1.75482672, -2.82588394]),
-            np.array([-4.34057309, -3.13723603]),
-            np.array([ 4.64193824, -2.87771924]),
-            np.array([ 0.61719114, -1.10018694]),
-            np.array([0.47546935, 4.3833841]),
-            np.array([ 0.29096532, -2.66313494]),
-            np.array([0.54558641, 0.27552597]),
-            np.array([-3.23978418, -3.67931561]),
-            np.array([3.7488089, 1.83948606])
-        ]
-
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = landmark_init_pts[i]
-                # landmark.state.p_pos = np.random.uniform(-world.size/2 + 0.35, world.size/2 - 0.35, world.dim_p)
+                landmark.state.p_pos = np.array([0.1, -0.1])
                 landmark.state.p_vel = np.zeros(world.dim_p)
-
 
 
     def benchmark_data(self, agent, world):
         return agent.active
-
 
     def is_collision(self, agent1, agent2):
         delta_pos = agent1.state.p_pos - agent2.state.p_pos
@@ -160,7 +109,7 @@ class Scenario(BaseScenario):
     def agent_reward(self, agent, world):
         if agent.active:
             # Agents are negatively rewarded if caught by adversaries
-            rew = 0.1
+            rew = 0.0
             shape = False
             adversaries = self.active_adversaries(world)
             if shape:  # reward can optionally be shaped (increased reward for increased distance from adversary)
@@ -197,36 +146,26 @@ class Scenario(BaseScenario):
             return 0.0
 
     def terminal(self, agent, world):
-        if agent.adversary:
-            # predator done if all prey caught
-            return all([agent.captured for agent in self.good_agents(world)])
-        else:
-            # prey done if caught
-            return agent.captured
-
+        # done if any prey caught
+        return any([agent.captured for agent in self.good_agents(world)])
 
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
         entity_sizes = []
-        # for entity in world.curr_landmarks: # TODO: FOR DYNAMIC LANDMARK GENERATION
         for entity in world.landmarks:
             if not entity.boundary:
                 entity_pos.append(entity.state.p_pos)
-                # entity_sizes.append(np.array([entity.size]))
                 entity_sizes.append(entity.size)
 
         # communication of all other agents
-        comm = []
+        # comm = []
         other_pos = []
         other_vel = []
         for other in world.agents:
             if other is agent: continue
-            comm.append(other.state.c)
-            if other.captured:
-                other_pos.append(np.array([-10.0, -10.0]))
-            else:
-                other_pos.append(other.state.p_pos)
+            # comm.append(other.state.c)
+            other_pos.append(other.state.p_pos)
             if not other.adversary:
                 other_vel.append(other.state.p_vel)
 
