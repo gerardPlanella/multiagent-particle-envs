@@ -75,7 +75,7 @@ class Scenario(BaseScenario):
 
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary:
-                landmark.state.p_pos = np.array([0.1, -0.1])
+                landmark.state.p_pos = np.array([0.0, -0.0])
                 landmark.state.p_vel = np.zeros(world.dim_p)
 
 

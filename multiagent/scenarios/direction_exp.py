@@ -65,12 +65,22 @@ class Scenario(BaseScenario):
             agent.active = True
             agent.captured = False
             if agent.adversary:
-                x = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1)
-                if x <= 0.0:
-                    y = np.random.uniform(0.0, world.size/2 - 0.1)
-                else:
-                    y = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1)
+                # training: init on right half of env
+                x = np.random.uniform(0.25, world.size/2 - 0.15)
+                y = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
+
+                # if x <= 0.0:
+                #     y = np.random.uniform(0.0, world.size/2 - 0.1)
+                # else:
+                #     y = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1)
                 agent.state.p_pos = np.array([x, y])
+
+                # OOD testing: init on left half of env
+                # agent.state.p_pos = np.random.uniform(-world.size/2 + 0.1, -0.25, 2)
+                # x = np.random.uniform(-world.size/2 + 0.15, -0.25)
+                # y = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
+                # agent.state.p_pos = np.random.uniform(-world.size/2 + 0.15, -0.25, 2)
+
             else:
                 agent.state.p_pos = np.array([0.0, 0.0])
             agent.state.p_vel = np.zeros(world.dim_p)
