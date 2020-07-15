@@ -65,37 +65,41 @@ class Scenario(BaseScenario):
             agent.active = True
             agent.captured = False
             if agent.adversary:
-                # training: init on right half of env
+                # training 1: init on right half of env
                 # x = np.random.uniform(0.25, world.size/2 - 0.15)
                 # y = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
 
-                # training: init in quadrant 1
-                x = np.random.uniform(0.25, world.size/2 - 0.15)
-                y = np.random.uniform(0.25, world.size/2 - 0.15)
+                # training 2: init in quadrant 1
+                # x = np.random.uniform(0.25, world.size/2 - 0.15)
+                # y = np.random.uniform(0.25, world.size/2 - 0.15)
 
-                # training: init in quadrants 1, 2, or 4 (NOT 3)
+                # training 3: init in quadrants 1, 2, or 4 (NOT 3)
                 # x = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
                 # if x <= 0.0:
                 #     y = np.random.uniform(0.0, world.size/2 - 0.1)
                 # else:
                 #     y = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1)
 
-
-                agent.state.p_pos = np.array([x, y])
-
-                # OOD testing: init on left half of env
+                # OOD testing 1: init on left half of env
                 # agent.state.p_pos = np.random.uniform(-world.size/2 + 0.1, -0.25, 2)
                 # x = np.random.uniform(-world.size/2 + 0.15, -0.25)
                 # y = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
 
-                # OOD testing: init in quadrant 2, 3, or 4
-                # if x <= 0.0:
-                #     y = np.random.uniform(0.0, world.size/2 - 0.1)
+                # OOD testing 2: init in quadrant 2, 3, or 4
+                # x = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
+                # if x > 0.0:
+                #     y = np.random.uniform(-world.size/2 + 0.15, -0.25)
                 # else:
-                #     y = np.random.uniform(-world.size/2 + 0.1, world.size/2 - 0.1)
+                #     y = np.random.uniform(-world.size/2 + 0.15, world.size/2 - 0.15)
 
-                # OOD testing: init in quadrant 3
+                # Q2
+                x = np.random.uniform(-world.size/2 + 0.15, -0.25)
+                y = np.random.uniform(-world.size/2 + 0.15, -0.25)
+
+
+                # OOD testing 3: init in quadrant 3
                 # agent.state.p_pos = np.random.uniform(-world.size/2 + 0.15, -0.25, 2)
+                agent.state.p_pos = np.array([x, y])
 
             else:
                 agent.state.p_pos = np.array([0.0, 0.0])
