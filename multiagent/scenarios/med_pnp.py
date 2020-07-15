@@ -171,6 +171,7 @@ class Scenario(BaseScenario):
                     if self.is_collision(a, agent):
                         agent.captured = True 
                         rew -= 50
+                        break
             return rew
         else:
             return 0.0
@@ -186,11 +187,14 @@ class Scenario(BaseScenario):
                 for adv in adversaries:
                     rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
             if agent.collide:
-                for ag in agents:
-                    for adv in adversaries:
+                for adv in adversaries: 
+                    for ag in agents:
                         if self.is_collision(ag, adv):
                             ag.captured = True 
                             rew += 50
+                            break
+
+                # TODO: possible to break out of inner loop only? if so --> switch order of loops (adversaries then agents), then pop out of loop if caught
 
             return rew
         else:
