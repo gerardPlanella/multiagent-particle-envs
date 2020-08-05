@@ -6,7 +6,8 @@ import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 from multiagent.core import Agent, Landmark, Wall
 
-from multiagent import rendering # comment out to run headless
+# import rendering only if we need it (and don't import for headless machines)
+from multiagent import rendering
 
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
@@ -252,13 +253,9 @@ class MultiAgentEnv(gym.Env):
 
         # create rendering geometry
         if self.render_geoms is None:
-            # import rendering only if we need it (and don't import for headless machines)
-            #from gym.envs.classic_control import rendering
-            # from multiagent import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
             for entity in self.world.entities:
-            # for entity in self.world.active_entities:
                 geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
                 if 'agent' in entity.name:
@@ -291,15 +288,17 @@ class MultiAgentEnv(gym.Env):
 
         results = []
         for i in range(len(self.viewers)):
-            # from multiagent import rendering
             # update bounds to center around agent
-            cam_range = self.world.size / 2 + 0.1
-            # cam_range = self.world.size
+            cam_range = self.world.size / 2
 
             if self.shared_viewer:
-                pos = np.zeros(self.world.dim_p)
-                # pos = np.ones(self.world.dim_p)
-                # pos = np.array([self.world.size / 2, self.world.size / 2])
+                if self.world.torus:
+                    # coords in range [0, w]
+                    pos = np.array([self.world.size/2, self.world.size/2])
+                else:
+                    # coords in range [-w/2, w/2]
+                    cam_range = self.world.size / 2 + 0.1
+                    pos = np.zeros(self.world.dim_p)
             else:
                 pos = self.agents[i].state.p_pos
             self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
@@ -309,8 +308,6 @@ class MultiAgentEnv(gym.Env):
 
                 if isinstance(entity, Agent):
                     if entity.captured:
-                    # if entity.state.in_collision and not entity.adversary:
-
                         self.render_geoms[e].set_color(0.0, 0.0, 0.0, 1.0)
                     else:
                         self.render_geoms[e].set_color(*entity.color, 0.5)

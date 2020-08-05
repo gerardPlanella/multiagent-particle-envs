@@ -1,4 +1,5 @@
 import numpy as np
+import math 
 
 # physical/external base state of all entites
 class EntityState(object):
@@ -6,6 +7,8 @@ class EntityState(object):
         # physical properties (position, velocity)
         self.p_pos = None
         self.p_vel = None
+        self.theta = None
+        self.coords = None
 
         # currently in collision
         self.in_collision = None
@@ -16,7 +19,6 @@ class AgentState(EntityState):
         super(AgentState, self).__init__()
         # communication utterance
         self.c = None
-
 
 # action of the agent
 class Action(object):
@@ -109,7 +111,6 @@ class World(object):
         # list of agents and entities (can change at execution-time!)
         self.agents = []
         self.landmarks = []
-        # self.curr_landmarks = [] # distinguish between all landmarks and those being used this epoch
         self.walls = []
         # communication channel dimensionality
         self.dim_c = 0
@@ -126,6 +127,7 @@ class World(object):
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
 
+        self.torus = None
         self.size = None
         self.level = 0
         # self.bounded = None
@@ -210,7 +212,6 @@ class World(object):
         for a,entity_a in enumerate(self.entities):
             for b,entity_b in enumerate(self.entities):
                 if(b <= a): continue
-                # [f_a, f_b] = self.get_collision_force(entity_a, entity_b)
                 [f_a, f_b] = self.get_entity_collision_force(entity_a, entity_b)
                 if(f_a is not None):
                     if not np.isclose(f_a, 0.0, atol=1e-3).all(): coll[a] = True  # entity is in collision
@@ -235,7 +236,7 @@ class World(object):
     def integrate_state(self, p_force, coll):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
-            entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
+            # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             
@@ -245,12 +246,23 @@ class World(object):
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             
-            entity.state.p_pos += entity.state.p_vel * self.dt
+            if self.torus:
+                # mod coordinates
+                entity.state.coords += entity.state.p_vel * self.dt
+                entity.state.p_pos = entity.state.coords % self.size
+            else:
+                entity.state.p_pos += entity.state.p_vel * self.dt
+                entity.state.coords = entity.state.p_pos
 
             # entity is in collision
             entity.state.in_collision = True if coll[i] == True else False
 
+            # entity heading
+            entity.state.theta = math.atan2(entity.state.p_vel[1], entity.state.p_vel[0])
+
+
     def update_agent_state(self, agent):
+        # if inactive, no collisions or communication
         if agent.active:
             agent.collide = True
             agent.silent = False

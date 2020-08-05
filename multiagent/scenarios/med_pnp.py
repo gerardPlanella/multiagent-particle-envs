@@ -4,15 +4,15 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, curriculum, discrete=True):
+    def make_world(self, config, discrete=True):
         world = World()
 
         # set world properties first
+        world.torus = False
         world.dim_c = 2
         world.size = 10.0
-        world.level = 0 if curriculum else 4
+        world.level = 0 if config.use_curriculum else 4
         # world.level = 4
-
 
         # agent properties
         num_good_agents = 1
@@ -25,10 +25,10 @@ class Scenario(BaseScenario):
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.active = True
+            agent.captured = False
             agent.collide = True
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
-            agent.captured = False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 3.0 if agent.adversary else 4.0
             agent.max_speed = 1.0 if agent.adversary else 1.3
@@ -134,6 +134,8 @@ class Scenario(BaseScenario):
 
 
     def is_collision(self, agent1, agent2):
+        if agent1 == agent2:
+            return False
         delta_pos = agent1.state.p_pos - agent2.state.p_pos
         dist = np.sqrt(np.sum(np.square(delta_pos)))
         dist_min = agent1.size + agent2.size
@@ -171,34 +173,29 @@ class Scenario(BaseScenario):
                     if self.is_collision(a, agent):
                         agent.captured = True 
                         rew -= 50
-                        break
-            return rew
+                        return rew
         else:
             return 0.0
 
     def adversary_reward(self, agent, world):
-        if agent.active:
-            # Adversaries are rewarded for collisions with agents
-            rew = -0.1
-            shape = False
-            agents = self.active_good_agents(world)
-            adversaries = self.active_adversaries(world)
-            if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
-                for adv in adversaries:
-                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
-            if agent.collide:
-                for adv in adversaries: 
-                    for ag in agents:
-                        if self.is_collision(ag, adv):
-                            ag.captured = True 
-                            rew += 50
-                            break
+        # Adversaries are rewarded for collisions with agents
+        rew = -0.1
+        shape = False
+        agents = self.active_good_agents(world)
+        adversaries = self.active_adversaries(world)
+        if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
+            for adv in adversaries:
+                rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+        if agent.collide:
+            capture_idxs = []
+            for i, ag in enumerate(agents):
+                for j, adv in enumerate(adversaries):
+                    if self.is_collision(ag, adv):
+                        capture_idxs.append(i)
+                        ag.captured = True 
 
-                # TODO: possible to break out of inner loop only? if so --> switch order of loops (adversaries then agents), then pop out of loop if caught
-
-            return rew
-        else:
-            return 0.0
+            rew += 50 * len(set(capture_idxs))
+        return rew
 
     def terminal(self, agent, world):
         if agent.adversary:

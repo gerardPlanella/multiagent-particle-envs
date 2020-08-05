@@ -4,10 +4,11 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, curriculum, discrete=True):
+    def make_world(self, config, discrete=True):
         world = World()
 
         # set world properties first
+        world.torus = False
         world.dim_c = 2
         world.size = 10.0
 
@@ -83,6 +84,8 @@ class Scenario(BaseScenario):
         return agent.active
 
     def is_collision(self, agent1, agent2):
+        if agent1 == agent2:
+            return False
         delta_pos = agent1.state.p_pos - agent2.state.p_pos
         dist = np.sqrt(np.sum(np.square(delta_pos)))
         dist_min = agent1.size + agent2.size
