@@ -6,7 +6,7 @@ from multiagent.scenario import BaseScenario
 from utils import overlaps
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.8, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.torus = True
@@ -38,6 +38,10 @@ class Scenario(BaseScenario):
         # make initial conditions
         self.reset_world(world)
         return world
+
+
+        # TODO: START HERE --> SCALE PRED VEL OR SCALE PREY VEL?
+        # TODO: COMPARE WHERE CHANGES WOULD NEED TO BE MADE FOR EACH --> WHICH IS MORE INTRUSIVE?
 
 
     def reset_world(self, world):
@@ -162,5 +166,4 @@ class Scenario(BaseScenario):
 
         # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos/world.size] + other_pos)
         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
-        print(obs)
         return obs
