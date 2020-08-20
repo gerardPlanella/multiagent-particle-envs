@@ -3,7 +3,7 @@ import math
 import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
-from utils import overlaps
+from multiagent.utils import overlaps
 
 class Scenario(BaseScenario):
     def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
@@ -77,7 +77,7 @@ class Scenario(BaseScenario):
 
 
     def benchmark_data(self, agent, world):
-        return agent.active
+        return { 'active' : agent.active }
 
     def is_collision(self, agent1, agent2):
         if agent1 == agent2:

@@ -19,13 +19,13 @@ class MultiAgentEnv(gym.Env):
     def __init__(self, world, reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
                  done_callback=None, shared_viewer=True):
-
+        # set required vectorized gym env property
         self.world = world
         self.agents = self.world.policy_agents
-        # set required vectorized gym env property
         self.n = len(world.policy_agents)
         self.num_preds = len([agent for agent in self.agents if agent.adversary])
         self.num_prey = len([agent for agent in self.agents if not agent.adversary])
+        self.num_landmarks = len(world.landmarks)
 
         # scenario callbacks
         self.reset_callback = reset_callback
@@ -94,6 +94,23 @@ class MultiAgentEnv(gym.Env):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    def update_agent_property(self, attr, value, agent_type='all'):
+        if agent_type == 'all':
+            # update all agents
+            agents = self.agents
+        elif agent_type == 'adversaries' or 'predators':
+            # update adversaries only
+            agents = [ag for ag in self.agents if ag.adversary]
+        else:
+            # update good agents only
+            agents = [ag for ag in self.agents if not ag.adversary]
+
+        for ag in agents:
+            setattr(ag, attr, value)
+
+    def get_capture_status(self):
+        return [ag.captured for ag in self.agents]
 
     def step(self, action_n):
         obs_n = []

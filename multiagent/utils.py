@@ -7,6 +7,21 @@ import distutils.spawn, distutils.version
 import numpy as np
 from io import StringIO
 from gym import error, logger
+from scipy.spatial import distance
+
+
+# ---------------------------------------------------
+# Miscellaneous
+# ---------------------------------------------------
+def overlaps(target, pts, w_size, threshold=0.25):
+    # make sure pts are centered in immediate world
+    pts = [p % w_size for p in pts]
+    # check if distance below threshold
+    return any([distance.euclidean(target, p) < threshold for p in pts])
+
+# ---------------------------------------------------
+# Image / Video
+# ---------------------------------------------------
 
 def touch(path):
     open(path, 'a').close()
