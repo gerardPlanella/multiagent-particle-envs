@@ -125,7 +125,7 @@ class MultiAgentEnv(gym.Env):
 
         # set action for each agent
         for i, agent in enumerate(self.agents):
-            self._set_action(action_n[i], agent, self.action_space[i])
+            self._set_action(np.copy(action_n[i]), agent, self.action_space[i])
         
         # advance world state
         self.world.step()
@@ -233,6 +233,7 @@ class MultiAgentEnv(gym.Env):
                 agent.action.c[action[0]] = 1.0
             else:
                 agent.action.c = action[0]
+
         action = action[1:]
 
         # make sure we used all elements of action

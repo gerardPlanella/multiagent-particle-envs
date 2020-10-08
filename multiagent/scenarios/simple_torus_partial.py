@@ -4,6 +4,7 @@ import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps
+from utils.misc import toroidal_distance
 
 class Scenario(BaseScenario):
     def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.3, prey_vel=1.0, discrete=True):
@@ -26,11 +27,11 @@ class Scenario(BaseScenario):
             agent.active = True
             agent.captured = False
             agent.collide = True
-            agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
             # agent.size = 0.0375 if agent.adversary else 0.025
             agent.accel = 20.0 if agent.adversary else 20.0
+            agent.silent = False if agent.adversary else True
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
         # discrete actions
@@ -39,10 +40,6 @@ class Scenario(BaseScenario):
         # make initial conditions
         self.reset_world(world)
         return world
-
-
-        # TODO: START HERE --> SCALE PRED VEL OR SCALE PREY VEL?
-        # TODO: COMPARE WHERE CHANGES WOULD NEED TO BE MADE FOR EACH --> WHICH IS MORE INTRUSIVE?
 
 
     def reset_world(self, world):
@@ -162,11 +159,38 @@ class Scenario(BaseScenario):
         comm, other_pos, other_coords = [], [], []
         for other in world.agents:
             if other is agent: continue
-            comm.append(other.state.c)
-            # other_pos.append(other.state.p_pos / world.size)
-            other_pos.append(other.state.p_pos)
+
+            # communication of other predators
+            if other.adversary:
+                comm.append(other.state.c)
+
+            # prey position visible distance threshold
+            if not other.adversary:
+                pos = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size)
+                # print('prey pos = {}'.format(pos))
+                other_pos.append(pos)
+            else:
+                other_pos.append(other.state.p_pos)
             other_coords.append(other.state.coords)
 
+        # print('comm = {}'.format(comm))
+
         # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos/world.size] + other_pos)
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+        if agent.adversary:
+            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
+        else:
+            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+        # print('obs = {}'.format(obs))
+        # print()
+
         return obs
+
+    def alter_prey_loc(self, pred_pos, prey_pos, size, thresh=1.75):
+        dist = toroidal_distance(pred_pos, prey_pos, size)
+        # print('dist = {}'.format(dist))
+        if dist < thresh:
+            # print('I CAN SEE PREY!!')
+            return prey_pos
+        else:
+            return np.zeros_like(prey_pos)
+
