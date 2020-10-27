@@ -4,9 +4,10 @@ import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps
+from utils.misc import toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.3, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -14,6 +15,8 @@ class Scenario(BaseScenario):
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
+        world.use_sensor_range = config.use_sensor_range
+        world.sensor_range = 4.5
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -30,7 +33,6 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
-            # agent.size = 0.0375 if agent.adversary else 0.025
             agent.accel = 20.0 if agent.adversary else 20.0
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
@@ -40,11 +42,6 @@ class Scenario(BaseScenario):
         # make initial conditions
         self.reset_world(world)
         return world
-
-
-        # TODO: START HERE --> SCALE PRED VEL OR SCALE PREY VEL?
-        # TODO: COMPARE WHERE CHANGES WOULD NEED TO BE MADE FOR EACH --> WHICH IS MORE INTRUSIVE?
-
 
     def reset_world(self, world):
         # random properties for agents
@@ -164,10 +161,22 @@ class Scenario(BaseScenario):
         for other in world.agents:
             if other is agent: continue
             comm.append(other.state.c)
-            # other_pos.append(other.state.p_pos / world.size)
-            other_pos.append(other.state.p_pos)
-            other_coords.append(other.state.coords)
 
-        # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos/world.size] + other_pos)
+            # sensor range on prey position
+            if world.use_sensor_range and not other.adversary:
+                pos = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
+                other_pos.append(pos)
+                other_coords.append(pos) # both are [0, 0] when outside sensing range
+            else:
+                other_pos.append(other.state.p_pos)
+                other_coords.append(other.state.coords)
+
         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
         return obs
+
+    def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
+        dist = toroidal_distance(pred_pos, prey_pos, size)
+        if dist < thresh:
+            return prey_pos
+        else:
+            return np.zeros_like(prey_pos)
