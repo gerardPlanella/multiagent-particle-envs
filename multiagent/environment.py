@@ -21,6 +21,7 @@ class MultiAgentEnv(gym.Env):
                  done_callback=None, shared_viewer=True):
         # set required vectorized gym env property
         self.world = world
+        self.env_key = world.env_key
         self.agents = self.world.policy_agents
         self.n = len(world.policy_agents)
         self.num_preds = len([agent for agent in self.agents if agent.adversary])

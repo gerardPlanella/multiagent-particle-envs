@@ -14,7 +14,7 @@ class Scenario(BaseScenario):
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
-
+    
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
@@ -30,8 +30,7 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
-            # agent.size = 0.0375 if agent.adversary else 0.025
-            agent.accel = 20.0 if agent.adversary else 20.0
+            agent.accel = 20.0 
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
         # discrete actions
@@ -40,11 +39,6 @@ class Scenario(BaseScenario):
         # make initial conditions
         self.reset_world(world)
         return world
-
-
-        # TODO: START HERE --> SCALE PRED VEL OR SCALE PREY VEL?
-        # TODO: COMPARE WHERE CHANGES WOULD NEED TO BE MADE FOR EACH --> WHICH IS MORE INTRUSIVE?
-
 
     def reset_world(self, world):
         # random properties for agents
@@ -163,11 +157,11 @@ class Scenario(BaseScenario):
         comm, other_pos, other_coords = [], [], []
         for other in world.agents:
             if other is agent: continue
-            comm.append(other.state.c)
-            # other_pos.append(other.state.p_pos / world.size)
-            other_pos.append(other.state.p_pos)
-            other_coords.append(other.state.coords)
+            if agent.adversary:
+                if not other.adversary:
+                    other_pos.append(other.state.p_pos)
+            else:
+                other_pos.append(other.state.p_pos)
 
-        # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos/world.size] + other_pos)
         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
         return obs

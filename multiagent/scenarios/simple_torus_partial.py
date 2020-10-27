@@ -10,6 +10,7 @@ class Scenario(BaseScenario):
     def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.3, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
+        world.env_key = config.env
         world.torus = True
         world.dim_c = 2
         world.size = size
