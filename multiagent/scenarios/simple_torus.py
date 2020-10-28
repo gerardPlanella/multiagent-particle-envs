@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps
@@ -172,7 +171,28 @@ class Scenario(BaseScenario):
                 other_coords.append(other.state.coords)
 
         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+
         return obs
+
+    # def observation(self, agent, world):
+    #     # pred/prey observations
+    #     comm, other_pos, other_coords = [], [], []
+    #     for other in world.agents:
+    #         if other is agent: continue
+    #         #comm.append(other.state.c)
+    #         other_pos.append(other.state.p_pos)
+    #         other_coords.append(other.state.coords)
+
+    #         if other.adversary:
+    #             comm.append(np.array([1]))
+
+    #     # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos/world.size] + other_pos)
+    #     if agent.adversary:
+    #         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
+    #     else:
+    #         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+        
+    #     return obs
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)

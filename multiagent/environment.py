@@ -3,6 +3,7 @@ from gym import spaces
 from gym.envs.registration import EnvSpec
 from gym.utils import seeding
 import numpy as np
+import copy
 from multiagent.multi_discrete import MultiDiscrete
 from multiagent.core import Agent, Landmark, Wall
 
@@ -126,7 +127,7 @@ class MultiAgentEnv(gym.Env):
 
         # set action for each agent
         for i, agent in enumerate(self.agents):
-            self._set_action(np.copy(action_n[i]), agent, self.action_space[i])
+            self._set_action(copy.deepcopy(action_n[i]), agent, self.action_space[i])
         
         # advance world state
         self.world.step()

@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
-        world.sensor_range = 3.0
+        world.sensor_range = 4.5
         world.use_perfect_comm = config.use_perfect_comm
 
         num_good_agents = 1
