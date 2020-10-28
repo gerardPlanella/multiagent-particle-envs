@@ -17,6 +17,7 @@ class Scenario(BaseScenario):
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
         world.sensor_range = 3.0
+        world.use_perfect_comm = config.use_perfect_comm
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -164,7 +165,10 @@ class Scenario(BaseScenario):
 
             # communication of other predators
             if other.adversary:
-                comm.append(other.state.c)
+                if world.use_perfect_comm:
+                    comm.append(self.generate_perfect_comm(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range))
+                else:
+                    comm.append(other.state.c)
 
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
@@ -178,20 +182,20 @@ class Scenario(BaseScenario):
             obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
         else:
             obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
-        # print('comm = {}'.format(comm))
-        # print('obs = {}'.format(obs))
-        # print()
 
         return obs
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)
-        print('dist = {}'.format(dist))
-        print('thesh = {}'.format(thresh))
         if dist < thresh:
-            # print('I CAN SEE PREY!!')
             return prey_pos
         else:
-            print('PREY GONE')
             return np.zeros_like(prey_pos)
+
+    def generate_perfect_comm(self, pred_pos, prey_pos, size, thresh):
+        dist = toroidal_distance(pred_pos, prey_pos, size)
+        if dist < thresh:
+            return np.array([1])
+        else:
+            return np.array([0])
 
