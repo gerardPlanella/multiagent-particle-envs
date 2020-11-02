@@ -156,47 +156,32 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # pred/prey observations
-        comm, other_pos, other_coords = [], [], []
+        comm, other_pos, other_coords, viz_bits = [], [], [], []
         for other in world.agents:
             if other is agent: continue
             comm.append(other.state.c)
 
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
-                pos = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
+                pos, bit = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
                 other_pos.append(pos)
                 other_coords.append(pos) # both are [0, 0] when outside sensing range
+                viz_bits.append(bit)
             else:
                 other_pos.append(other.state.p_pos)
                 other_coords.append(other.state.coords)
-
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
-
+        
+        if world.use_sensor_range:
+            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + viz_bits)
+        else:
+            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+            
         return obs
 
-    # def observation(self, agent, world):
-    #     # pred/prey observations
-    #     comm, other_pos, other_coords = [], [], []
-    #     for other in world.agents:
-    #         if other is agent: continue
-    #         #comm.append(other.state.c)
-    #         other_pos.append(other.state.p_pos)
-    #         other_coords.append(other.state.coords)
-
-    #         if other.adversary:
-    #             comm.append(np.array([1]))
-
-    #     # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos/world.size] + other_pos)
-    #     if agent.adversary:
-    #         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
-    #     else:
-    #         obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
-        
-    #     return obs
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)
         if dist < thresh:
-            return prey_pos
+            return prey_pos, np.array([1])
         else:
-            return np.zeros_like(prey_pos)
+            return np.zeros_like(prey_pos), np.array([0])

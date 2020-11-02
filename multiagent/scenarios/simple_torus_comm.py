@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
-        world.sensor_range = 4.5
+        world.sensor_range = 3.5
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -165,10 +165,13 @@ class Scenario(BaseScenario):
             # communication of other predators
             if other.adversary:
                 comm.append(other.state.c)
+                print('comm = {}'.format(other.state.c))
 
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
                 pos = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
+                print('pos = {}'.format(pos))
+                print()
                 other_pos.append(pos)
             else:
                 other_pos.append(other.state.p_pos)
@@ -183,6 +186,10 @@ class Scenario(BaseScenario):
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)
+        print('pred pos loc = {}'.format(pred_pos))
+        print('prey pos loc = {}'.format(prey_pos))
+        print('dist loc = {}'.format(dist))
+
         if dist < thresh:
             return prey_pos
         else:

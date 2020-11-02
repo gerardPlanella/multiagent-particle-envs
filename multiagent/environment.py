@@ -275,6 +275,7 @@ class MultiAgentEnv(gym.Env):
         if self.render_geoms is None:
             self.render_geoms = []
             self.render_geoms_xform = []
+            self.extra_geoms = []
             for entity in self.world.entities:
                 geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
@@ -285,6 +286,18 @@ class MultiAgentEnv(gym.Env):
                 geom.add_attr(xform)
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
+
+                if self.world.use_sensor_range and isinstance(entity, Agent) and not entity.adversary:
+                    # add sensing range to visualization
+                    geom = rendering.make_circle(self.world.sensor_range)
+                    # xform = rendering.Transform()
+                    geom.set_color(*entity.color, alpha=0.15)
+                    geom.add_attr(xform)
+                    self.extra_geoms.append(geom)
+
+                # TODO: see if this automatically changes position of sensing range
+
+
             
             for wall in self.world.walls:
                 corners = ((wall.axis_pos - 0.5 * wall.width, wall.endpoints[0]),
@@ -305,6 +318,8 @@ class MultiAgentEnv(gym.Env):
                 viewer.geoms = []
                 for geom in self.render_geoms:
                     viewer.add_geom(geom)
+                for extra in self.extra_geoms:
+                    viewer.add_geom(extra)
 
         results = []
         for i in range(len(self.viewers)):
