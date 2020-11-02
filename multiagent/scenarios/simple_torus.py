@@ -2,8 +2,7 @@ import numpy as np
 import math
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
-from multiagent.utils import overlaps
-from utils.misc import toroidal_distance
+from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
     def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True):
@@ -185,3 +184,4 @@ class Scenario(BaseScenario):
             return prey_pos, np.array([1])
         else:
             return np.zeros_like(prey_pos), np.array([0])
+

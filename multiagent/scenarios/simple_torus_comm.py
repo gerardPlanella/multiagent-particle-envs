@@ -3,8 +3,7 @@ import math
 import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
-from multiagent.utils import overlaps
-from utils.misc import toroidal_distance
+from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
     def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True):
@@ -16,6 +15,7 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
+        world.use_perfect_comm = config.use_perfect_comm
         world.sensor_range = 3.5
 
         num_good_agents = 1
@@ -157,28 +157,38 @@ class Scenario(BaseScenario):
             return agent.captured
 
     def observation(self, agent, world):
-        # pred/prey observations
-        comm, other_pos, other_coords = [], [], []
+        if agent.adversary:
+            # find prey location
+            prey_pos = [other.state.p_pos for other in world.agents if not other.adversary]
+
+        # predator/prey observations
+        comm, other_pos, other_coords, viz_bits = [], [], [], []
         for other in world.agents:
             if other is agent: continue
 
             # communication of other predators
-            if other.adversary:
-                comm.append(other.state.c)
-                print('comm = {}'.format(other.state.c))
+            if agent.adversary and other.adversary:
+                if world.use_perfect_comm:
+                    c = self.generate_perfect_comm(other.state.p_pos, prey_pos[0], world.size, world.sensor_range)
+                    comm.append(c)
+                else:
+                    comm.append(other.state.c)
 
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
-                pos = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
-                print('pos = {}'.format(pos))
-                print()
+                pos, bit = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
                 other_pos.append(pos)
+                other_coords.append(pos) # both are [0, 0] when outside sensing range
+                viz_bits.append(bit)
             else:
                 other_pos.append(other.state.p_pos)
-            other_coords.append(other.state.coords)
+                other_coords.append(other.state.coords)
 
         if agent.adversary:
-            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
+            if world.use_sensor_range:
+                obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + viz_bits + comm)
+            else:
+                obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
         else:
             obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
 
@@ -186,13 +196,15 @@ class Scenario(BaseScenario):
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)
-        print('pred pos loc = {}'.format(pred_pos))
-        print('prey pos loc = {}'.format(prey_pos))
-        print('dist loc = {}'.format(dist))
-
         if dist < thresh:
-            return prey_pos
+            return prey_pos, np.array([1])
         else:
-            return np.zeros_like(prey_pos)
+            return np.zeros_like(prey_pos), np.array([0])
 
 
+    def generate_perfect_comm(self, pred_pos, prey_pos, size, thresh):
+        dist = toroidal_distance(pred_pos, prey_pos, size)
+        if dist < thresh:
+            return np.array([1])
+        else:
+            return np.array([0])

@@ -19,6 +19,17 @@ def overlaps(target, pts, w_size, threshold=0.25):
     # check if distance below threshold
     return any([distance.euclidean(target, p) < threshold for p in pts])
 
+def toroidal_distance(d1, d2, size):
+    dx = abs(d1[0] - d2[0])
+    dy = abs(d1[1] - d2[1])
+
+    if dx > size/2:
+        dx = size - dx
+    if dy > size/2:
+        dy = size - dy
+
+    return np.sqrt(dx*dx + dy*dy)
+
 # ---------------------------------------------------
 # Image / Video
 # ---------------------------------------------------
