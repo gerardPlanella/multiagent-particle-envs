@@ -5,16 +5,18 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
+        world.mode = config.mode
         world.torus = True
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
-        world.sensor_range = 4.5
+        if world.use_sensor_range:
+            world.init_thresh = config.init_range_thresh
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -50,14 +52,41 @@ class Scenario(BaseScenario):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
         # generate predators in random circle of random radius with random angles
-        overlap = True
-        while overlap:
+        redraw = True
+        if world.use_sensor_range:
+            sample_outside_range = np.random.uniform(0, 1) > (1.0 - world.init_thresh)
+        # i = 0
+        while redraw:
+            # i+=1
+            # print(i)
+            correct_range = False
+
+            # draw location for prey
+            prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
+
+            # draw predator locations
+            # init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
             angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
             radius = np.random.uniform(0.0, 20.0)
             init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
-            prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
+
+            # predator distance to prey pt
+            dists = [toroidal_distance(prey_pt, pt % world.size, world.size) for pt in init_pts]
+
             # ensure predators not initialized on top of prey
             overlap = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
+
+            if world.mode == 'test' and world.use_sensor_range and world.sensor_range <= 3.5:
+                if sample_outside_range:
+                    # ensure ALL predators inited outside sensing range
+                    correct_range = any(d < world.sensor_range for d in dists)
+                else:
+                    # ensure ALL predators inited inside sensing range
+                    correct_range = any(d > world.sensor_range for d in dists)
+
+                redraw = overlap or correct_range
+            else:
+                redraw = overlap
 
         # set initial states
         init_pts.append(prey_pt)
