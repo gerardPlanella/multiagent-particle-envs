@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
-        world.use_perfect_comm = config.use_perfect_comm
+        world.comm_type = config.comm_type
         world.sensor_range = config.distance_start if config.mode is 'train' else config.test_distance
         world.init_thresh = config.init_range_thresh
 
@@ -67,12 +67,14 @@ class Scenario(BaseScenario):
             prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
 
             # draw predator locations
-            if world.mode == 'test' and sample_outside_range and world.sensor_range > 3.0:
-                init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            else:
-                angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-                radius = np.random.uniform(0.0, 20.0)
-                init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
+            # if world.mode == 'test' and sample_outside_range and world.sensor_range > 3.0:
+            #     init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            # else:
+            #     angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
+            #     radius = np.random.uniform(0.0, 20.0)
+            #     init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
+            init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+
 
             # predator distance to prey pt
             dists = [toroidal_distance(prey_pt, pt % world.size, world.size) for pt in init_pts]
@@ -198,11 +200,11 @@ class Scenario(BaseScenario):
 
             # communication of other predators
             if agent.adversary and other.adversary:
-                if world.use_perfect_comm:
-                    c = self.generate_perfect_comm(other.state.p_pos, prey_pos[0], world.size, world.sensor_range)
-                    comm.append(c)
-                else:
+                if world.comm_type == 'normal':
                     comm.append(other.state.c)
+                else:
+                    c = self.generate_comm(world.comm_type, other.state.p_pos, prey_pos[0], world.size, world.sensor_range)
+                    comm.append(c)
 
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
@@ -226,15 +228,19 @@ class Scenario(BaseScenario):
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)
-        if dist < thresh:
+        if dist <= thresh:
             return prey_pos, np.array([1])
         else:
             return np.zeros_like(prey_pos), np.array([0])
 
-
-    def generate_perfect_comm(self, pred_pos, prey_pos, size, thresh):
-        dist = toroidal_distance(pred_pos, prey_pos, size)
-        if dist < thresh:
-            return np.array([1])
+    def generate_comm(self, c_type, pred_pos, prey_pos, size, thresh):
+        if c_type == 'perfect':
+            # perfect signalling
+            dist = toroidal_distance(pred_pos, prey_pos, size)
+            if dist <= thresh:
+                return np.array([1])
+            else:
+                return np.array([0])
         else:
+            # no signalling
             return np.array([0])
