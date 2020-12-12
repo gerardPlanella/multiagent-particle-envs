@@ -153,7 +153,8 @@ class Scenario(BaseScenario):
                 for a in adversaries:
                     if self.is_collision(a, agent):
                         agent.captured = True 
-                        rew -= 25
+                        # rew -= 25
+                        rew -= 50
                         break
             return rew
         else:
@@ -177,7 +178,8 @@ class Scenario(BaseScenario):
                         capture_idxs.append(i)
                         ag.captured = True 
 
-            rew += 25 * len(set(capture_idxs))
+            # rew += 25 * len(set(capture_idxs))
+            rew += 50 * len(set(capture_idxs))
         return rew
 
     def terminal(self, agent, world):
