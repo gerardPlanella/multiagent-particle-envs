@@ -27,6 +27,7 @@ class Scenario(BaseScenario):
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'agent {}'.format(i)
+            agent.id = i
             agent.active = True
             agent.captured = False
             agent.collide = True
@@ -147,7 +148,6 @@ class Scenario(BaseScenario):
                 for a in adversaries:
                     if self.is_collision(a, agent):
                         agent.captured = True 
-                        # rew -= 25
                         rew -= 50
                         break
             return rew
@@ -172,7 +172,6 @@ class Scenario(BaseScenario):
                         capture_idxs.append(i)
                         ag.captured = True 
 
-            # rew += 25 * len(set(capture_idxs))
             rew += 50 * len(set(capture_idxs))
         return rew
 
@@ -186,10 +185,12 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # pred/prey observations
-        comm, other_pos, other_coords, viz_bits = [], [], [], []
+        other_pos, other_coords, viz_bits = [], [], []
+        extra_ids = []
         for other in world.agents:
             if other is agent: continue
-            comm.append(other.state.c)
+
+            extra_ids.append(other.id)
 
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
@@ -200,14 +201,17 @@ class Scenario(BaseScenario):
             else:
                 other_pos.append(other.state.p_pos)
                 other_coords.append(other.state.coords)
+
+        if agent.adversary:
+            other_pos = self.symmetrize(agent.id, other_pos)
+            other_coords = self.symmetrize(agent.id, other_coords)
         
         if world.use_sensor_range:
-            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + viz_bits)
+            obs = np.concatenate([agent.state.p_pos] + other_pos + viz_bits)
         else:
-            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
-            
-        return obs
+            obs = np.concatenate([agent.state.p_pos] + other_pos)
 
+        return obs
 
     def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
         dist = toroidal_distance(pred_pos, prey_pos, size)
@@ -215,4 +219,16 @@ class Scenario(BaseScenario):
             return prey_pos, np.array([1])
         else:
             return np.zeros_like(prey_pos), np.array([0])
+
+    def symmetrize(self, agent_id, arr):
+        # ensure symmetry in obervation space
+        # P1 --> P2, P3
+        # P2 --> P3, P1
+        # P3 --> P1, P2
+        if agent_id == 0 or agent_id == 2:
+            return arr
+        else:
+            return [arr[1], arr[0], arr[2]]
+
+        
 

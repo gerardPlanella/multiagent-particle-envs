@@ -33,6 +33,8 @@ class Entity(object):
     def __init__(self):
         # name 
         self.name = ''
+        # id
+        self.id = None
         # properties:
         self.size = 0.050
         # active in gameplay

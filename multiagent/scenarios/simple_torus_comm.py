@@ -153,7 +153,6 @@ class Scenario(BaseScenario):
                 for a in adversaries:
                     if self.is_collision(a, agent):
                         agent.captured = True 
-                        # rew -= 25
                         rew -= 50
                         break
             return rew
@@ -178,7 +177,6 @@ class Scenario(BaseScenario):
                         capture_idxs.append(i)
                         ag.captured = True 
 
-            # rew += 25 * len(set(capture_idxs))
             rew += 50 * len(set(capture_idxs))
         return rew
 
@@ -220,11 +218,11 @@ class Scenario(BaseScenario):
 
         if agent.adversary:
             if world.use_sensor_range:
-                obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + viz_bits + comm)
+                obs = np.concatenate([agent.state.p_pos] + other_pos + viz_bits + comm)
             else:
-                obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos + comm)
+                obs = np.concatenate([agent.state.p_pos] + other_pos + comm)
         else:
-            obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+            obs = np.concatenate([agent.state.p_pos] + other_pos)
 
         return obs
 
