@@ -190,8 +190,6 @@ class Scenario(BaseScenario):
         for other in world.agents:
             if other is agent: continue
 
-            extra_ids.append(other.id)
-
             # sensor range on prey position
             if world.use_sensor_range and not other.adversary:
                 pos, bit = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)

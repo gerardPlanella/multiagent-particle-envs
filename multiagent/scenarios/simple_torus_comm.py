@@ -29,6 +29,7 @@ class Scenario(BaseScenario):
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'agent {}'.format(i)
+            agent.id = i
             agent.active = True
             agent.captured = False
             agent.collide = True
@@ -217,6 +218,10 @@ class Scenario(BaseScenario):
                 other_coords.append(other.state.coords)
 
         if agent.adversary:
+            other_pos = self.symmetrize_coords(agent.id, other_pos)
+            other_coords = self.symmetrize_coords(agent.id, other_coords)
+            comm = self.symmetrize_comm(agent.id, comm)
+
             if world.use_sensor_range:
                 obs = np.concatenate([agent.state.p_pos] + other_pos + viz_bits + comm)
             else:
@@ -244,3 +249,23 @@ class Scenario(BaseScenario):
         else:
             # no signalling
             return np.array([0])
+
+    def symmetrize_coords(self, agent_id, arr):
+        # ensure symmetry in obervation space
+        # P1 --> P2, P3
+        # P2 --> P3, P1
+        # P3 --> P1, P2
+        if agent_id == 0 or agent_id == 2:
+            return arr
+        else:
+            return [arr[1], arr[0], arr[2]]
+
+    def symmetrize_comm(self, agent_id, arr):
+        # ensure symmetry in obervation space
+        # P1 --> P2, P3
+        # P2 --> P3, P1
+        # P3 --> P1, P2
+        if agent_id == 0 or agent_id == 2:
+            return arr
+        else:
+            return [arr[1], arr[0]]
