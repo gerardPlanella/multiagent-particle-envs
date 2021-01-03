@@ -6,7 +6,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.3, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -164,5 +164,6 @@ class Scenario(BaseScenario):
             else:
                 other_pos.append(other.state.p_pos)
 
-        obs = np.concatenate([agent.state.p_pos] + other_pos)
+        # obs = np.concatenate([agent.state.p_pos] + other_pos)
+        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
         return obs
