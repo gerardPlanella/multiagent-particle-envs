@@ -220,13 +220,23 @@ class Scenario(BaseScenario):
 
     def symmetrize(self, agent_id, arr):
         # ensure symmetry in obervation space
-        # P1 --> P2, P3
-        # P2 --> P3, P1
-        # P3 --> P1, P2
-        if agent_id == 0 or agent_id == 2:
-            return arr
+        # P1 --> IN: P2, P3, P4, P5; OUT: P2, P3, P4, P5
+        # P2 --> IN: P1, P3, P4, P5; OUT: P3, P4, P5, P1
+        # P3 --> IN: P1, P2, P4, P5; OUT: P4, P5, P1, P2
+        # P4 --> IN: P1, P2, P3, P5; OUT: P5, P1, P2, P3
+        # P5 --> IN: P1, P2, P3, P4; OUT: P1, P2, P3, P4 
+        if agent_id == 1:
+            # P2
+            return arr[1:] + [arr[0]]
+        elif agent_id == 2:
+            # P3
+            return arr[2:] + arr[:2]
+        elif agent_id == 3:
+            # P4
+            return [arr[-1]] + arr[:-1]
         else:
-            return [arr[1], arr[0], arr[2]]
+            # P1, P5
+            return arr
 
         
 

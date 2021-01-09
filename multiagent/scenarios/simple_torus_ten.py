@@ -220,13 +220,62 @@ class Scenario(BaseScenario):
 
     def symmetrize(self, agent_id, arr):
         # ensure symmetry in obervation space
-        # P1 --> P2, P3
-        # P2 --> P3, P1
-        # P3 --> P1, P2
-        if agent_id == 0 or agent_id == 2:
-            return arr
+        # P1 --> IN: P2, P3, P4, P5, P6, P7, P8, P9, P10
+        #    --> OUT: P2, P3, P4, P5, P6, P7, P8, P9, P10
+
+        # P2 --> IN: P1, P3, P4, P5, P6, P7, P8, P9, P10
+        #    --> OUT: P3, P4, P5, P6, P7, P8, P9, P10, P1
+
+        # P3 --> IN: P1, P2, P4, P5, P6, P7, P8, P9, P10
+        #    --> OUT: P4, P5, P6, P7, P8, P9, P10, P1, P2
+
+        # P4 --> IN: P1, P2, P3, P5, P6, P7, P8, P9, P10
+        #    --> OUT: P5, P6, P7, P8, P9, P10, P1, P2, P3
+
+        # P5 --> IN: P1, P2, P3, P4, P6, P7, P8, P9, P10
+        #    --> OUT: P6, P7, P8, P9, P10, P1, P2, P3, P4
+
+        # P6 --> IN: P1, P2, P3, P4, P5, P7, P8, P9, P10
+        #    --> OUT: P7, P8, P9, P10, P1, P2, P3, P4, P5
+
+        # P7 --> IN: P1, P2, P3, P4, P5, P6, P8, P9, P10
+        #    --> OUT: P8, P9, P10, P1, P2, P3, P4, P5, P6
+
+        # P8 --> IN: P1, P2, P3, P4, P5, P6, P7, P9, P10
+        #    --> OUT: P9, P10, P1, P2, P3, P4, P5, P6, P7
+
+        # P9 --> IN: P1, P2, P3, P4, P5, P6, P7, P8, P10
+        #    --> OUT: P10, P1, P2, P3, P4, P5, P6, P7, P8
+
+        # P10 --> IN: P1, P2, P3, P4, P5, P6, P7, P8, P9
+        #    --> OUT: P1, P2, P3, P4, P5, P6, P7, P8, P9
+        if agent_id == 1:
+            # P2
+            return arr[1:] + [arr[0]]
+        elif agent_id == 2:
+            # P3
+            return arr[2:] + arr[:2]
+        elif agent_id == 3:
+            # P4
+            return arr[3:] + arr[:3]
+        elif agent_id == 4:
+            # P5
+            return arr[4:] + arr[:4]
+        elif agent_id == 5:
+            # P6
+            return arr[5:] + arr[:5]
+        elif agent_id == 6:
+            # P7
+            return arr[6:] + arr[:6]
+        elif agent_id == 7:
+            # P8
+            return arr[7:] + arr[:7]
+        elif agent_id == 8:
+            # P9
+            return arr[8:] + arr[:8]
         else:
-            return [arr[1], arr[0], arr[2]]
+            # P1, P10
+            return arr
 
         
 
