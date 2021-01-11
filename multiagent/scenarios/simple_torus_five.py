@@ -200,9 +200,9 @@ class Scenario(BaseScenario):
                 other_pos.append(other.state.p_pos)
                 other_coords.append(other.state.coords)
 
-        if agent.adversary:
-            other_pos = self.symmetrize(agent.id, other_pos)
-            other_coords = self.symmetrize(agent.id, other_coords)
+        # if agent.adversary:
+            # other_pos = self.symmetrize(agent.id, other_pos)
+            # other_coords = self.symmetrize(agent.id, other_coords)
         
         if world.use_sensor_range:
             obs = np.concatenate([agent.state.p_pos] + other_pos + viz_bits)

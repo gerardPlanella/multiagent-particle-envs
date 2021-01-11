@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=10, pred_vel=1.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=7, pred_vel=1.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -200,9 +200,9 @@ class Scenario(BaseScenario):
                 other_pos.append(other.state.p_pos)
                 other_coords.append(other.state.coords)
 
-        if agent.adversary:
-            other_pos = self.symmetrize(agent.id, other_pos)
-            other_coords = self.symmetrize(agent.id, other_coords)
+        # if agent.adversary:
+            # other_pos = self.symmetrize(agent.id, other_pos)
+            # other_coords = self.symmetrize(agent.id, other_coords)
         
         if world.use_sensor_range:
             obs = np.concatenate([agent.state.p_pos] + other_pos + viz_bits)
