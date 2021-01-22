@@ -10,7 +10,7 @@ A simple multi-agent particle world with a continuous observation and discrete a
 - To interactively view moving to landmark scenario (see others in ./scenarios/):
 `bin/interactive.py --scenario simple.py`
 
-- Known dependencies: Python (3.5.4), OpenAI gym (0.10.5), numpy (1.14.5)
+- Known dependencies: Python (3.5.4), OpenAI gym (0.10.5), numpy (1.14.5), pyglet (1.3.2 or 1.5.11)
 
 - To use the environments, look at the code for importing them in `make_env.py`.
 
