@@ -5,6 +5,7 @@ from __future__ import division
 import os
 import six
 import sys
+import pkg_resources
 
 if "Apple" in sys.version:
     if 'DYLD_FALLBACK_LIBRARY_PATH' in os.environ:
@@ -99,7 +100,16 @@ class Viewer(object):
         if return_rgb_array:
             buffer = pyglet.image.get_buffer_manager().get_color_buffer()
             image_data = buffer.get_image_data()
-            arr = np.fromstring(image_data.data, dtype=np.uint8, sep='')
+
+            pyglet_version = pkg_resources.get_distribution('pyglet').version
+            version_split = pyglet_version.split('.')
+
+            # version < 1.4 uses image_data.data --> version > 1.4 uses image_data.get_data()
+            if float('.'.join(version_split[:2])) < 1.4:
+                arr = np.fromstring(image_data.data, dtype=np.uint8, sep='')
+            else:
+                arr = np.fromstring(image_data.get_data(), dtype=np.uint8, sep='')
+
             # In https://github.com/openai/gym-http-api/issues/2, we
             # discovered that someone using Xmonad on Arch was having
             # a window of size 598 x 398, though a 600 x 400 window

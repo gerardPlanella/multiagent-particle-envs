@@ -8,7 +8,7 @@ from multiagent.multi_discrete import MultiDiscrete
 from multiagent.core import Agent, Landmark, Wall
 
 # import rendering only if we need it (and don't import for headless machines)
-#from multiagent import rendering
+from multiagent import rendering
 
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
