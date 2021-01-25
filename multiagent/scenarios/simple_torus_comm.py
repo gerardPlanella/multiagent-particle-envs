@@ -6,7 +6,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -58,24 +58,14 @@ class Scenario(BaseScenario):
         # generate predators in random circle of random radius with random angles
         redraw = True
         sample_outside_range = np.random.uniform(0, 1) > (1.0 - world.init_thresh)
-        # i = 0
         while redraw:
-            # i+=1
-            # print(i)
             correct_range = False
 
             # draw location for prey
             prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
 
             # draw predator locations
-            # if world.mode == 'test' and sample_outside_range and world.sensor_range > 3.0:
-            #     init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # else:
-            #     angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-            #     radius = np.random.uniform(0.0, 20.0)
-            #     init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-
 
             # predator distance to prey pt
             dists = [toroidal_distance(prey_pt, pt % world.size, world.size) for pt in init_pts]
