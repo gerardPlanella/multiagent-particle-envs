@@ -295,10 +295,6 @@ class MultiAgentEnv(gym.Env):
                     geom.add_attr(xform)
                     self.extra_geoms.append(geom)
 
-                # TODO: see if this automatically changes position of sensing range
-
-
-            
             for wall in self.world.walls:
                 corners = ((wall.axis_pos - 0.5 * wall.width, wall.endpoints[0]),
                            (wall.axis_pos - 0.5 * wall.width, wall.endpoints[1]),

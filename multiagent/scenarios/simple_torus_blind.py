@@ -164,6 +164,6 @@ class Scenario(BaseScenario):
             else:
                 other_pos.append(other.state.p_pos)
 
-        # obs = np.concatenate([agent.state.p_pos] + other_pos)
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
+        obs = np.concatenate([agent.state.p_pos] + other_pos)
+        # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
         return obs

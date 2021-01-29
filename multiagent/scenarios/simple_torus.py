@@ -13,6 +13,7 @@ class Scenario(BaseScenario):
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
+        world.use_sensor_range = False
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
