@@ -22,6 +22,7 @@ class Scenario(BaseScenario):
 
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
+        for i, agent in enumerate(world.agents):
             agent.name = 'agent {}'.format(i)
             agent.id = i
             agent.active = True
@@ -55,7 +56,8 @@ class Scenario(BaseScenario):
             prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
 
             # draw predator locations
-            init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            # init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            init_pts = [np.array([4.0, 3.0]), np.array([2.0, 3.0]), np.array([5.0, 5.0])]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -77,13 +79,17 @@ class Scenario(BaseScenario):
     def benchmark_data(self, agent, world):
         return { 'active' : agent.active }
 
-    def is_collision(self, agent1, agent2):
-        if agent1 == agent2:
-            return False
-        delta_pos = agent1.state.p_pos - agent2.state.p_pos
-        dist = np.sqrt(np.sum(np.square(delta_pos)))
-        dist_min = agent1.size + agent2.size
-        return True if dist < dist_min else False
+    def is_collision(self, agent, adversaries):
+        colliders = []
+        for i, adv in enumerate(adversaries):
+            delta_pos = agent.state.p_pos - adv.state.p_pos
+            dist = np.sqrt(np.sum(np.square(delta_pos)))
+            dist_min = agent.size + adv.size
+
+            if dist < dist_min:
+                colliders.append(i)
+
+        return True if len(set(colliders)) > 1 else False
 
     # return all agents that are not adversaries
     def good_agents(self, world):
@@ -116,11 +122,9 @@ class Scenario(BaseScenario):
                     # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
                     rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos)))
             if agent.collide:
-                for a in adversaries:
-                    if self.is_collision(a, agent):
-                        agent.captured = True 
-                        rew -= 50
-                        break
+                if self.is_collision(agent, adversaries):
+                    agent.captured = True 
+                    rew -= 50
             return rew
         else:
             return 0.0
@@ -138,10 +142,9 @@ class Scenario(BaseScenario):
         if agent.collide:
             capture_idxs = []
             for i, ag in enumerate(agents):
-                for j, adv in enumerate(adversaries):
-                    if self.is_collision(ag, adv):
-                        capture_idxs.append(i)
-                        ag.captured = True 
+                if self.is_collision(ag, adversaries):
+                    capture_idxs.append(i)
+                    ag.captured = True 
 
             rew += 50 * len(set(capture_idxs))
         return rew
@@ -157,6 +160,7 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # pred/prey observations
         other_pos, other_coords, viz_bits = [], [], []
+        extra_ids = []
         for other in world.agents:
             if other is agent: continue
 
@@ -181,6 +185,3 @@ class Scenario(BaseScenario):
             return arr
         else:
             return [arr[1], arr[0], arr[2]]
-
-        
-
