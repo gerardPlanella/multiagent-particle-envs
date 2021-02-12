@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.1, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=4.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -15,6 +15,8 @@ class Scenario(BaseScenario):
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
 
+        print('world size = {}'.format(world.size))
+
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
@@ -22,6 +24,7 @@ class Scenario(BaseScenario):
 
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
+        for i, agent in enumerate(world.agents):
             agent.name = 'agent {}'.format(i)
             agent.id = i
             agent.active = True
@@ -52,10 +55,14 @@ class Scenario(BaseScenario):
         redraw = True
         while redraw:
             # draw location for prey
-            prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
+            prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
+            # radius = np.random.uniform(0.0, 5.0)
+            # radius = 2.0
+            # init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -169,7 +176,6 @@ class Scenario(BaseScenario):
         #     other_coords = self.symmetrize(agent.id, other_coords)
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
-
         return obs
 
     def symmetrize(self, agent_id, arr):
