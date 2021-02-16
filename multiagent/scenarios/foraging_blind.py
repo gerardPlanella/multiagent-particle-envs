@@ -5,17 +5,19 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=4.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=2, pred_vel=1.2, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
+        world.mode = config.mode
         world.torus = True
-        world.dim_c = 2
+        world.dim_c = 1
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
-        world.use_sensor_range = False
-
-        print('world size = {}'.format(world.size))
+        world.use_sensor_range = True
+        world.comm_type = config.comm_type
+        world.sensor_range = config.distance_start if config.mode is 'train' else config.test_distance
+        world.init_thresh = config.init_range_thresh
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -30,10 +32,10 @@ class Scenario(BaseScenario):
             agent.active = True
             agent.captured = False
             agent.collide = True
-            agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 20.0 if agent.adversary else 20.0
+            agent.silent = False if agent.adversary else True
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
         # discrete actions
@@ -53,19 +55,33 @@ class Scenario(BaseScenario):
 
         # generate predators in random circle of random radius with random angles
         redraw = True
+        sample_outside_range = np.random.uniform(0, 1) > (1.0 - world.init_thresh)
         while redraw:
+            correct_range = False
+
             # draw location for prey
-            prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
+            prey_pt = np.random.uniform(0.0, world.size, size=2)
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-            # radius = np.random.uniform(0.0, 5.0)
-            # radius = 2.0
-            # init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
+
+            # predator distance to prey pt
+            dists = [toroidal_distance(prey_pt, pt % world.size, world.size) for pt in init_pts]
 
             # ensure predators not initialized on top of prey
-            redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
+            overlap = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
+
+            if world.mode == 'test' and world.sensor_range <= 3.5:
+                if sample_outside_range:
+                    # ensure ALL predators inited outside sensing range
+                    correct_range = any(d < world.sensor_range for d in dists)
+                else:
+                    # ensure ALL predators inited inside sensing range
+                    correct_range = any(d > world.sensor_range for d in dists)
+
+                redraw = overlap or correct_range
+            else:
+                redraw = overlap
 
         # set initial states
         init_pts.append(prey_pt)
@@ -84,13 +100,17 @@ class Scenario(BaseScenario):
     def benchmark_data(self, agent, world):
         return { 'active' : agent.active }
 
-    def is_collision(self, agent1, agent2):
-        if agent1 == agent2:
-            return False
-        delta_pos = agent1.state.p_pos - agent2.state.p_pos
-        dist = np.sqrt(np.sum(np.square(delta_pos)))
-        dist_min = agent1.size + agent2.size
-        return True if dist < dist_min else False
+    def is_collision(self, agent, adversaries):
+        colliders = []
+        for i, adv in enumerate(adversaries):
+            delta_pos = agent.state.p_pos - adv.state.p_pos
+            dist = np.sqrt(np.sum(np.square(delta_pos)))
+            dist_min = agent.size + adv.size
+
+            if dist < dist_min:
+                colliders.append(i)
+
+        return True if len(set(colliders)) > 1 else False
 
     # return all agents that are not adversaries
     def good_agents(self, world):
@@ -123,11 +143,9 @@ class Scenario(BaseScenario):
                     # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
                     rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos)))
             if agent.collide:
-                for a in adversaries:
-                    if self.is_collision(a, agent):
-                        agent.captured = True 
-                        rew -= 50
-                        break
+                if self.is_collision(agent, adversaries):
+                    agent.captured = True 
+                    rew -= 50
             return rew
         else:
             return 0.0
@@ -145,10 +163,9 @@ class Scenario(BaseScenario):
         if agent.collide:
             capture_idxs = []
             for i, ag in enumerate(agents):
-                for j, adv in enumerate(adversaries):
-                    if self.is_collision(ag, adv):
-                        capture_idxs.append(i)
-                        ag.captured = True 
+                if self.is_collision(ag, adversaries):
+                    capture_idxs.append(i)
+                    ag.captured = True 
 
             rew += 50 * len(set(capture_idxs))
         return rew
@@ -162,31 +179,56 @@ class Scenario(BaseScenario):
             return agent.captured
 
     def observation(self, agent, world):
+        if agent.adversary:
+            # find prey location
+            prey_pos = [other.state.p_pos for other in world.agents if not other.adversary]
+
         # pred/prey observations
-        other_pos, other_coords, viz_bits = [], [], []
+        comm, other_pos, other_coords, viz_bits = [], [], [], []
         for other in world.agents:
             if other is agent: continue
 
-            # position of other agents
-            other_pos.append(other.state.p_pos)
-            other_coords.append(other.state.coords)
+            # communication of other predators
+            if agent.adversary and other.adversary:
+                if world.comm_type == 'normal':
+                    comm.append(other.state.c)
+                else:
+                    c = self.generate_comm(world.comm_type, other.state.p_pos, prey_pos[0], world.size, world.sensor_range)
+                    comm.append(c)
+
+            # only observe prey location (modified by sensing range)
+            if agent.adversary:
+                if not other.adversary:
+                    pos, bit = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
+                    other_pos.append(pos)
+                    other_coords.append(pos) # both are [0, 0] when outside sensing range
+                    viz_bits.append(bit)
+            else:
+                other_pos.append(other.state.p_pos)
+                other_coords.append(other.state.coords)
 
         if agent.adversary:
-            other_pos = self.symmetrize(agent.id, other_pos)
-            other_coords = self.symmetrize(agent.id, other_coords)
+            obs = np.concatenate([agent.state.p_pos] + other_pos + viz_bits + comm)
+        else:
+            obs = np.concatenate([agent.state.p_pos] + other_pos)
 
-        obs = np.concatenate([agent.state.p_pos] + other_pos)
         return obs
 
-    def symmetrize(self, agent_id, arr):
-        # ensure symmetry in obervation space
-        # P1 --> P2, P3
-        # P2 --> P3, P1
-        # P3 --> P1, P2
-        if agent_id == 0 or agent_id == 2:
-            return arr
+    def alter_prey_loc(self, pred_pos, prey_pos, size, thresh):
+        dist = toroidal_distance(pred_pos, prey_pos, size)
+        if dist <= thresh:
+            return prey_pos, np.array([1])
         else:
-            return [arr[1], arr[0], arr[2]]
+            return np.zeros_like(prey_pos), np.array([0])
 
-        
-
+    def generate_comm(self, c_type, pred_pos, prey_pos, size, thresh):
+        if c_type == 'perfect':
+            # perfect signalling
+            dist = toroidal_distance(pred_pos, prey_pos, size)
+            if dist <= thresh:
+                return np.array([1])
+            else:
+                return np.array([0])
+        else:
+            # no signalling
+            return np.array([0])
