@@ -17,6 +17,7 @@ class Scenario(BaseScenario):
         world.use_sensor_range = True
         world.comm_type = config.comm_type
         world.sensor_range = config.distance_start if config.mode is 'train' else config.test_distance
+        world.comm_range = config.comm_range
         world.init_thresh = config.init_range_thresh
 
         num_good_agents = 1
@@ -193,7 +194,7 @@ class Scenario(BaseScenario):
                 if world.comm_type == 'normal':
                     comm.append(other.state.c)
                 else:
-                    c = self.generate_comm(world.comm_type, other.state.p_pos, prey_pos[0], world.size, world.sensor_range)
+                    c = self.generate_comm(world.comm_type, other.state.p_pos, prey_pos[0], world.size, world.comm_range)
                     comm.append(c)
 
             # only observe prey location (modified by sensing range)

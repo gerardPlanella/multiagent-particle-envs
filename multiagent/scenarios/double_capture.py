@@ -159,7 +159,6 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # pred/prey observations
         other_pos, other_coords, viz_bits = [], [], []
-        extra_ids = []
         for other in world.agents:
             if other is agent: continue
 

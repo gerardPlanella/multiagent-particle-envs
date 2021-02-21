@@ -6,7 +6,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.0, prey_vel=1.0, sensor_range=4.5, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -18,6 +18,7 @@ class Scenario(BaseScenario):
         world.use_sensor_range = config.use_sensor_range
         world.comm_type = config.comm_type
         world.sensor_range = config.distance_start if config.mode is 'train' else config.test_distance
+        world.comm_range = config.comm_range
         world.init_thresh = config.init_range_thresh
 
         num_good_agents = 1
@@ -194,7 +195,7 @@ class Scenario(BaseScenario):
                 if world.comm_type == 'normal':
                     comm.append(other.state.c)
                 else:
-                    c = self.generate_comm(world.comm_type, other.state.p_pos, prey_pos[0], world.size, world.sensor_range)
+                    c = self.generate_comm(world.comm_type, other.state.p_pos, prey_pos[0], world.size, world.comm_range)
                     comm.append(c)
 
             # sensor range on prey position
