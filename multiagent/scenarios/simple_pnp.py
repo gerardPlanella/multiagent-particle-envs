@@ -9,6 +9,7 @@ class Scenario(BaseScenario):
 
         # set world properties first
         world.torus = False
+        world.n_steps = 500
         world.dim_c = 2
         world.size = 2.0
 

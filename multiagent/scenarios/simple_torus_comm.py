@@ -10,6 +10,7 @@ class Scenario(BaseScenario):
         world = World()
         # set any world properties
         world.env_key = config.env
+        world.n_steps = 500
         world.mode = config.mode
         world.torus = True
         world.dim_c = 1

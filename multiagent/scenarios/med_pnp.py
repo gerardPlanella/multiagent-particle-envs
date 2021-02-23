@@ -9,6 +9,7 @@ class Scenario(BaseScenario):
 
         # set world properties first
         world.torus = False
+        world.n_steps = 500
         world.dim_c = 2
         world.size = 10.0
         world.level = 0 if config.use_curriculum else 4
