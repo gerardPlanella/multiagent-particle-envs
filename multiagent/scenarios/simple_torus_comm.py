@@ -6,7 +6,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.0, prey_vel=1.0, sensor_range=4.5, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -234,7 +234,9 @@ class Scenario(BaseScenario):
         if c_type == 'perfect':
             # perfect signalling
             dist = toroidal_distance(pred_pos, prey_pos, size)
-            if dist <= thresh:
+
+            # add noise to prevent observational overfitting
+            if dist <= thresh and np.random.uniform(0, 1) < 0.95:
                 return np.array([1])
             else:
                 return np.array([0])

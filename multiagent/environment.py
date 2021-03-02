@@ -295,6 +295,13 @@ class MultiAgentEnv(gym.Env):
                     geom.add_attr(xform)
                     self.extra_geoms.append(geom)
 
+                    # add comm range to visualization
+                    geom = rendering.make_circle(self.world.comm_range)
+                    # xform = rendering.Transform()
+                    geom.set_color(*entity.color, alpha=0.25)
+                    geom.add_attr(xform)
+                    self.extra_geoms.append(geom)
+
             for wall in self.world.walls:
                 corners = ((wall.axis_pos - 0.5 * wall.width, wall.endpoints[0]),
                            (wall.axis_pos - 0.5 * wall.width, wall.endpoints[1]),
