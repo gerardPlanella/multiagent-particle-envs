@@ -236,11 +236,13 @@ class Scenario(BaseScenario):
             # perfect signalling
             dist = toroidal_distance(pred_pos, prey_pos, size)
 
-            # add noise to prevent observational overfitting
-            if dist <= thresh and np.random.uniform(0, 1) < (1 - comm_noise):
-                return np.array([1])
+            if np.random.uniform(0, 1) < (1 - comm_noise):
+                # give correct message
+                return np.array([1]) if dist <= thresh else np.array([0])
             else:
-                return np.array([0])
+                # give incorrect message
+                return np.array([0]) if dist <= thresh else np.array([1])
+
         else:
             # no signalling
             return np.array([0])
