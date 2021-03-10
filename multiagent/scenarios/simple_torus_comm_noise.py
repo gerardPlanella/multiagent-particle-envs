@@ -18,7 +18,7 @@ class Scenario(BaseScenario):
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = config.use_sensor_range
         world.comm_type = config.comm_type
-        world.comm_noise = config.comm_noise
+        world.comm_noise = config.noise_start if config.mode is 'train' else config.test_noise
         world.sensor_range = config.distance_start if config.mode is 'train' else config.test_distance
         world.comm_range = config.comm_range
         world.init_thresh = config.init_range_thresh
@@ -26,7 +26,6 @@ class Scenario(BaseScenario):
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
-        num_landmarks = 0
 
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -233,7 +232,7 @@ class Scenario(BaseScenario):
 
     def generate_comm(self, c_type, pred_pos, prey_pos, size, thresh, comm_noise):
         if c_type == 'perfect':
-            # perfect signalling
+            # perfect signalling (with noise)
             dist = toroidal_distance(pred_pos, prey_pos, size)
 
             if np.random.uniform(0, 1) < (1 - comm_noise):
