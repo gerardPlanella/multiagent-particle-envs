@@ -81,6 +81,7 @@ class Scenario(BaseScenario):
 
     def is_collision(self, agent, adversaries):
         colliders = []
+        collider_names = []
         for i, adv in enumerate(adversaries):
             delta_pos = agent.state.p_pos - adv.state.p_pos
             dist = np.sqrt(np.sum(np.square(delta_pos)))
@@ -88,6 +89,7 @@ class Scenario(BaseScenario):
 
             if dist < dist_min:
                 colliders.append(i)
+                collider_names.append(adv.name)
 
         return True if len(set(colliders)) > 1 else False
 
