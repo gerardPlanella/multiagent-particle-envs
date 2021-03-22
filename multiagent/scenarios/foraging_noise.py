@@ -18,6 +18,7 @@ class Scenario(BaseScenario):
         world.use_sensor_range = True
         world.comm_type = config.comm_type
         world.sensor_range = config.distance_start if config.mode is 'train' else config.test_distance
+        world.pos_noise = config.noise_start if config.mode is 'train' else config.test_noise
         world.comm_range = config.comm_range
         world.init_thresh = config.init_range_thresh
 
@@ -202,8 +203,13 @@ class Scenario(BaseScenario):
 
             # sensor range on prey position
             if other.adversary:
-                other_pos.append(other.state.p_pos)
-                other_coords.append(other.state.coords)
+                if agent.adversary:
+                    noise_pos = (other.state.p_pos + np.random.normal(0.0, world.pos_noise, size=2)) % world.size
+                    other_pos.append(noise_pos)
+                    other_coords.append(other.state.coords)
+                else:
+                    other_pos.append(other.state.p_pos)
+                    other_coords.append(other.state.coords)
             else:
                 pos, bit = self.alter_prey_loc(agent.state.p_pos, other.state.p_pos, world.size, world.sensor_range)
                 other_pos.append(pos)

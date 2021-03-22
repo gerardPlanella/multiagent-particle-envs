@@ -79,11 +79,12 @@ class Scenario(BaseScenario):
                 if sample_outside_range:
                     # ensure ALL predators inited outside sensing range
                     correct_range = any(d < world.sensor_range for d in dists)
+                    redraw = overlap or correct_range
                 else:
                     # ensure ALL predators inited inside sensing range
-                    correct_range = any(d > world.sensor_range for d in dists)
-
-                redraw = overlap or correct_range
+                    # correct_range = any(d > world.sensor_range for d in dists)
+                    redraw = overlap
+                # redraw = overlap or correct_range
             else:
                 redraw = overlap
 
