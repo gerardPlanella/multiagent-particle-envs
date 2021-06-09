@@ -1,22 +1,26 @@
 import numpy as np
 import math
-import copy
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
-from multiagent.utils import overlaps
+from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=5, pred_vel=1.2, prey_vel=1.0, discrete=True):
+    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, tax=0.1, discrete=True, partial=False):
         world = World()
         # set any world properties
-        world.env_key = config.env
         world.n_steps = 500
         world.torus = True
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
-    
+        world.partial = partial
+        world.tax = tax
+
+        print('world size = {}'.format(world.size))
+        print('pred vel = {}'.format(pred_vel))
+        print('prey vel = {}'.format(prey_vel))
+
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
@@ -26,13 +30,14 @@ class Scenario(BaseScenario):
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'agent {}'.format(i)
+            agent.id = i
             agent.active = True
             agent.captured = False
             agent.collide = True
             agent.silent = True
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
-            agent.accel = 5.0 
+            agent.accel = 20.0 if agent.adversary else 20.0
             agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
         # discrete actions
@@ -51,14 +56,16 @@ class Scenario(BaseScenario):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
         # generate predators in random circle of random radius with random angles
-        overlap = True
-        while overlap:
-            angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-            radius = np.random.uniform(0.0, 20.0)
-            init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
-            prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
+        redraw = True
+        while redraw:
+            # draw location for prey
+            prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
+
+            # draw predator locations
+            init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+
             # ensure predators not initialized on top of prey
-            overlap = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
+            redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
 
         # set initial states
         init_pts.append(prey_pt)
@@ -128,22 +135,24 @@ class Scenario(BaseScenario):
     def adversary_reward(self, agent, world):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
-        shape = False
         agents = self.active_good_agents(world)
         adversaries = self.active_adversaries(world)
-        if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
-            for adv in adversaries:
-                # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
-                rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
         if agent.collide:
-            capture_idxs = []
+            capture_idxs, capture_advs = [], []
             for i, ag in enumerate(agents):
                 for j, adv in enumerate(adversaries):
                     if self.is_collision(ag, adv):
                         capture_idxs.append(i)
-                        ag.captured = True 
+                        capture_advs.append(adv)
+                        ag.captured = True
 
-            rew += 50 * len(set(capture_idxs))
+            if len(set(capture_idxs)) > 0:
+                if agent in capture_advs:
+                    # rew += 50 * len(set(capture_idxs))
+                    rew += 50 * (1 - world.tax)
+                else:
+                    rew += 50 * world.tax
+
         return rew
 
     def terminal(self, agent, world):
@@ -156,15 +165,37 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # pred/prey observations
-        comm, other_pos, other_coords = [], [], []
+        other_pos = []
         for other in world.agents:
             if other is agent: continue
-            if agent.adversary:
-                if not other.adversary:
+
+            if world.partial:
+                # partial observations
+                if agent.adversary:
+                    if not other.adversary:
+                        other_pos.append(other.state.p_pos)
+                else:
                     other_pos.append(other.state.p_pos)
             else:
+                # full observations
                 other_pos.append(other.state.p_pos)
 
+        # if agent.adversary:
+        #     other_pos = self.symmetrize(agent.id, other_pos)
+        #     other_coords = self.symmetrize(agent.id, other_coords)
+
         obs = np.concatenate([agent.state.p_pos] + other_pos)
-        # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_pos)
         return obs
+
+    def symmetrize(self, agent_id, arr):
+        # ensure symmetry in obervation space
+        # P1 --> P2, P3
+        # P2 --> P3, P1
+        # P3 --> P1, P2
+        if agent_id == 0 or agent_id == 2:
+            return arr
+        else:
+            return [arr[1], arr[0], arr[2]]
+
+        
+

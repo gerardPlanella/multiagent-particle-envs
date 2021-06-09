@@ -5,18 +5,20 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
+    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True, partial=False):
         world = World()
         # set any world properties
-        world.env_key = config.env
         world.n_steps = 500
         world.torus = True
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
+        world.partial = partial
 
         print('world size = {}'.format(world.size))
+        print('pred vel = {}'.format(pred_vel))
+        print('prey vel = {}'.format(prey_vel))
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -60,10 +62,6 @@ class Scenario(BaseScenario):
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-            # radius = np.random.uniform(0.0, 5.0)
-            # radius = 2.0
-            # init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -164,13 +162,20 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # pred/prey observations
-        other_pos, other_coords, viz_bits = [], [], []
+        other_pos = []
         for other in world.agents:
             if other is agent: continue
 
-            # position of other agents
-            other_pos.append(other.state.p_pos)
-            other_coords.append(other.state.coords)
+            if world.partial:
+                # partial observations
+                if agent.adversary:
+                    if not other.adversary:
+                        other_pos.append(other.state.p_pos)
+                else:
+                    other_pos.append(other.state.p_pos)
+            else:
+                # full observations
+                other_pos.append(other.state.p_pos)
 
         # if agent.adversary:
         #     other_pos = self.symmetrize(agent.id, other_pos)
