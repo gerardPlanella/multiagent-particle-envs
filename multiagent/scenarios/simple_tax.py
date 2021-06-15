@@ -63,6 +63,7 @@ class Scenario(BaseScenario):
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            # init_pts = [np.array([2.5, 3.0]), np.array([3.0, 1.5]), np.array([0.5, 0.5])]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -116,12 +117,7 @@ class Scenario(BaseScenario):
         if agent.active:
             # Agents are negatively rewarded if caught by adversaries
             rew = 0.1
-            shape = False
             adversaries = self.active_adversaries(world)
-            if shape:  # reward can optionally be shaped (increased reward for increased distance from adversary)
-                for adv in adversaries:
-                    # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
-                    rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos)))
             if agent.collide:
                 for a in adversaries:
                     if self.is_collision(a, agent):
@@ -148,10 +144,11 @@ class Scenario(BaseScenario):
 
             if len(set(capture_idxs)) > 0:
                 if agent in capture_advs:
-                    # rew += 50 * len(set(capture_idxs))
-                    rew += 50 * (1 - world.tax)
+                    # rew += 50 * (1 - world.tax) + 50 * world.tax/2 * (len(capture_advs)-1)
+                    rew += (50 * (1 - world.tax) + 50 * world.tax/2 * (len(capture_advs)-1))/len(capture_advs)
                 else:
-                    rew += 50 * world.tax
+                    # rew += 50 * world.tax/2 * len(capture_advs)
+                    rew += (50 * world.tax/2 * len(capture_advs))/len(capture_advs)
 
         return rew
 
