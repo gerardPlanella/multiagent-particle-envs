@@ -4,8 +4,15 @@ from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
+COLOR_SCHEMES = {
+    'regular' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35])],
+    'two_slow' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.0]), np.array([0.55, 0.25, 0.0])],
+    'staggered' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.65]), np.array([0.55, 0.25, 0.0])]
+}
+
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, tax=0.1, discrete=True, partial=False):
+    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, tax=0.1, discrete=True,
+                   partial=False, symmetric=False, color_scheme='regular'):
         world = World()
         # set any world properties
         world.n_steps = 500
@@ -16,6 +23,8 @@ class Scenario(BaseScenario):
         world.use_sensor_range = False
         world.partial = partial
         world.tax = tax
+        world.symmetric = symmetric
+        world.predator_colors = COLOR_SCHEMES[color_scheme]
 
         print('world size = {}'.format(world.size))
         print('pred vel = {}'.format(pred_vel))
@@ -38,7 +47,13 @@ class Scenario(BaseScenario):
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 20.0 if agent.adversary else 20.0
-            agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
+            if agent.adversary:
+                if isinstance(pred_vel, list):
+                    agent.max_speed = pred_vel[i]
+                else:
+                    agent.max_speed = pred_vel 
+            else:
+                agent.max_speed = prey_vel
 
         # discrete actions
         world.discrete_actions = discrete
@@ -48,10 +63,14 @@ class Scenario(BaseScenario):
         return world
 
     def reset_world(self, world):
-        # random properties for agents
+        # agent color
         for i, agent in enumerate(world.agents):
-            agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
-            # random properties for landmarks
+            if agent.adversary:
+                agent.color = world.predator_colors[i]
+            else:
+                agent.color = np.array([0.35, 0.85, 0.35]) 
+
+        # properties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
@@ -144,10 +163,8 @@ class Scenario(BaseScenario):
 
             if len(set(capture_idxs)) > 0:
                 if agent in capture_advs:
-                    # rew += 50 * (1 - world.tax) + 50 * world.tax/2 * (len(capture_advs)-1)
                     rew += (50 * (1 - world.tax) + 50 * world.tax/2 * (len(capture_advs)-1))/len(capture_advs)
                 else:
-                    # rew += 50 * world.tax/2 * len(capture_advs)
                     rew += (50 * world.tax/2 * len(capture_advs))/len(capture_advs)
 
         return rew
@@ -177,9 +194,9 @@ class Scenario(BaseScenario):
                 # full observations
                 other_pos.append(other.state.p_pos)
 
-        # if agent.adversary:
-        #     other_pos = self.symmetrize(agent.id, other_pos)
-        #     other_coords = self.symmetrize(agent.id, other_coords)
+        if world.symmetric and agent.adversary:
+            print('symming!')
+            other_pos = self.symmetrize(agent.id, other_pos)
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
         return obs

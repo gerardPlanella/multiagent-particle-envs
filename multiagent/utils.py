@@ -8,7 +8,7 @@ import numpy as np
 from io import StringIO
 from gym import error, logger
 from scipy.spatial import distance
-
+# from multiagent.environment import MultiAgentEnv
 
 # ---------------------------------------------------
 # Miscellaneous
@@ -52,10 +52,11 @@ class VideoRecorder(object):
         enabled (bool): Whether to actually record video, or just no-op (for convenience)
     """
 
-    def __init__(self, env, path=None, metadata=None, enabled=True, base_path=None):
+    def __init__(self, env, path=None, metadata=None, enabled=True, base_path=None, particle_env=False):
         modes = env.metadata.get('render.modes', [])
         self._async = env.metadata.get('semantics.async')
         self.enabled = enabled
+        self.particle_env = particle_env
 
         # Don't bother setting anything else if not enabled
         if not self.enabled:
@@ -127,7 +128,8 @@ class VideoRecorder(object):
         # multiagent particle envs returns list here instead of ndarray
         # because of option for multiple agent views
         # take just primary view for video
-        frame = frame[0]
+        if self.particle_env:
+            frame = frame[0]
 
         if frame is None:
             if self._async:
