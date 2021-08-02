@@ -6,7 +6,7 @@ from multiagent.utils import overlaps, toroidal_distance
 
 COLOR_SCHEMES = {
     'regular' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35])],
-    'two_slow' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.0]), np.array([0.55, 0.25, 0.0])],
+    'two_slow' : [np.array([0.85, 0.35, 0.35]), np.array([0.45, 0.15, 0.0]), np.array([0.45, 0.15, 0.0])],
     'staggered' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.65]), np.array([0.55, 0.25, 0.0])]
 }
 
@@ -29,6 +29,7 @@ class Scenario(BaseScenario):
         print('world size = {}'.format(world.size))
         print('pred vel = {}'.format(pred_vel))
         print('prey vel = {}'.format(prey_vel))
+        print('tax = {}'.format(world.tax))
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -195,7 +196,6 @@ class Scenario(BaseScenario):
                 other_pos.append(other.state.p_pos)
 
         if world.symmetric and agent.adversary:
-            print('symming!')
             other_pos = self.symmetrize(agent.id, other_pos)
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
