@@ -7,6 +7,7 @@ from multiagent.utils import overlaps, toroidal_distance
 COLOR_SCHEMES = {
     'regular' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35])],
     'two_slow' : [np.array([0.85, 0.35, 0.35]), np.array([0.45, 0.15, 0.0]), np.array([0.45, 0.15, 0.0])],
+    'two_fast' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.15, 0.05, 0.0])],
     'staggered' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.65]), np.array([0.55, 0.25, 0.0])]
 }
 
@@ -133,7 +134,7 @@ class Scenario(BaseScenario):
         main_reward = self.adversary_reward(agent, world) if agent.adversary else self.agent_reward(agent, world)
         return main_reward
 
-    def agent_reward(self, agent, world):
+    def agent_reward(self, agent, world, action):
         if agent.active:
             # Agents are negatively rewarded if caught by adversaries
             rew = 0.1
@@ -148,7 +149,7 @@ class Scenario(BaseScenario):
         else:
             return 0.0
 
-    def adversary_reward(self, agent, world):
+    def adversary_reward(self, agent, world, action):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
         agents = self.active_good_agents(world)
