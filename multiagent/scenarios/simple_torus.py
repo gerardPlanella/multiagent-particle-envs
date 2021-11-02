@@ -63,6 +63,8 @@ class Scenario(BaseScenario):
         return world
 
     def reset_world(self, world):
+        world.origin = np.array([world.size/2, world.size/2])
+
         # agent colors
         for i, agent in enumerate(world.agents):
             if agent.adversary:

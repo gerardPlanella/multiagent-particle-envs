@@ -12,7 +12,7 @@ COLOR_SCHEMES = {
 }
 
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, tax=0.1, discrete=True,
+    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, cap_reward = 50.0, tax=0.0, discrete=True,
                    partial=False, symmetric=False, action_penalty=0.0, color_scheme='regular'):
         world = World()
         # set any world properties
@@ -22,6 +22,7 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
+        world.cap_reward = cap_reward
         world.partial = partial
         world.tax = tax
         world.symmetric = symmetric
@@ -33,6 +34,7 @@ class Scenario(BaseScenario):
         print('prey vel = {}'.format(prey_vel))
         print('tax = {}'.format(world.tax))
         print('action penalty = {}'.format(world.action_penalty))
+        print('capture reward = {}'.format(world.cap_reward))
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -59,6 +61,8 @@ class Scenario(BaseScenario):
             else:
                 agent.max_speed = prey_vel
 
+        print('n_preds = {}'.format(len(world.agents) - 1))
+
         # discrete actions
         world.discrete_actions = discrete
 
@@ -67,6 +71,8 @@ class Scenario(BaseScenario):
         return world
 
     def reset_world(self, world):
+        world.origin = np.array([world.size/2, world.size/2])
+
         # agent color
         for i, agent in enumerate(world.agents):
             if agent.adversary:
@@ -86,7 +92,7 @@ class Scenario(BaseScenario):
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # init_pts = [np.array([2.5, 3.0]), np.array([3.0, 1.5]), np.array([0.5, 0.5])]
+            # init_pts = [np.array([1.5, 1.5]) + np.random.normal(0.0, 0.01, size=2), np.array([1.5, 1.5])+np.random.normal(0.0, 0.01, size=2), np.array([1.5, 1.5])]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -171,9 +177,9 @@ class Scenario(BaseScenario):
 
             if len(set(capture_idxs)) > 0:
                 if agent in capture_advs:
-                    rew += (50 * (1 - world.tax) + 50 * world.tax/2 * (len(capture_advs)-1))/len(capture_advs)
+                    rew += (world.cap_reward * (1 - world.tax) + world.cap_reward * world.tax/2 * (len(capture_advs)-1))/len(capture_advs)
                 else:
-                    rew += (50 * world.tax/2 * len(capture_advs))/len(capture_advs)
+                    rew += (world.cap_reward * world.tax/2 * len(capture_advs))/len(capture_advs)
 
         return rew
 
@@ -186,10 +192,17 @@ class Scenario(BaseScenario):
             return agent.captured
 
     def observation(self, agent, world):
+        # if agent.adversary:
+        #     ag_pos = agent.state.p_pos
+        #     print('agent {} pos = {}'.format(agent.id, agent.state.p_pos))
+
         # pred/prey observations
         other_pos = []
         for other in world.agents:
             if other is agent: continue
+
+            # if not other.adversary:
+            #     prey_pos = other.state.p_pos
 
             if world.partial:
                 # partial observations
@@ -204,6 +217,15 @@ class Scenario(BaseScenario):
 
         if world.symmetric and agent.adversary:
             other_pos = self.symmetrize(agent.id, other_pos)
+
+        # if agent.adversary:
+        #     dist = math.sqrt((prey_pos[0] - ag_pos[0])**2 + (prey_pos[1] - ag_pos[1])**2)
+        #     print('distance = {}'.format(dist))
+        #     num_steps = dist / 0.12
+        #     pen = 0.1*num_steps
+        #     rew = 50 - pen 
+        #     print('value if capture = {}'.format(rew))
+        #     print('value if NO capture = {}'.format(-pen))
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
         return obs

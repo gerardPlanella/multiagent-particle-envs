@@ -4,16 +4,9 @@ from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
-COLOR_SCHEMES = {
-    'regular' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35])],
-    'two_slow' : [np.array([0.85, 0.35, 0.35]), np.array([0.45, 0.15, 0.0]), np.array([0.45, 0.15, 0.0])],
-    'two_fast' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.15, 0.05, 0.0])],
-    'staggered' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.65]), np.array([0.55, 0.25, 0.0])]
-}
-
 class Scenario(BaseScenario):
     def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, tax=0.1, discrete=True,
-                   partial=False, symmetric=False, color_scheme='regular'):
+                   partial=False, symmetric=False, action_penalty=0.0):
         world = World()
         # set any world properties
         world.n_steps = 500
@@ -25,12 +18,13 @@ class Scenario(BaseScenario):
         world.partial = partial
         world.tax = tax
         world.symmetric = symmetric
-        world.predator_colors = COLOR_SCHEMES[color_scheme]
+        world.action_penalty = action_penalty
 
         print('world size = {}'.format(world.size))
         print('pred vel = {}'.format(pred_vel))
         print('prey vel = {}'.format(prey_vel))
         print('tax = {}'.format(world.tax))
+        print('action penalty = {}'.format(world.action_penalty))
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -70,7 +64,7 @@ class Scenario(BaseScenario):
         # agent color
         for i, agent in enumerate(world.agents):
             if agent.adversary:
-                agent.color = world.predator_colors[i]
+                agent.color = np.array([0.85, 0.35, 0.35])
             else:
                 agent.color = np.array([0.35, 0.85, 0.35]) 
 
@@ -82,11 +76,14 @@ class Scenario(BaseScenario):
         redraw = True
         while redraw:
             # draw location for prey
-            prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
+            # prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
+            prey_pt = world.origin
 
             # draw predator locations
-            init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            # init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            init_pts = [np.array([1.5, 1.5])]
             # init_pts = [np.array([2.5, 3.0]), np.array([3.0, 1.5]), np.array([0.5, 0.5])]
+
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -132,8 +129,8 @@ class Scenario(BaseScenario):
     def active_adversaries(self, world):
         return [agent for agent in world.agents if agent.adversary and agent.active]
 
-    def reward(self, agent, world):
-        main_reward = self.adversary_reward(agent, world) if agent.adversary else self.agent_reward(agent, world)
+    def reward(self, agent, world, action):
+        main_reward = self.adversary_reward(agent, world, action) if agent.adversary else self.agent_reward(agent, world, action)
         return main_reward
 
     def agent_reward(self, agent, world, action):
@@ -154,6 +151,10 @@ class Scenario(BaseScenario):
     def adversary_reward(self, agent, world, action):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
+
+        # small penalty if agent chooses to move
+        if np.argmax(action[0]) != 0: rew -= world.action_penalty
+
         agents = self.active_good_agents(world)
         adversaries = self.active_adversaries(world)
         if agent.collide:
