@@ -55,6 +55,7 @@ class Scenario(BaseScenario):
             else:
                 agent.max_speed = prey_vel
 
+
         # discrete actions
         world.discrete_actions = discrete
 
@@ -68,7 +69,8 @@ class Scenario(BaseScenario):
         # agent colors
         for i, agent in enumerate(world.agents):
             if agent.adversary:
-                agent.color = world.predator_colors[i]
+                # agent.color = world.predator_colors[i]
+                agent.color = np.array([0.85, 0.35, 0.35])
             else:
                 agent.color = np.array([0.35, 0.85, 0.35]) 
 
@@ -129,11 +131,11 @@ class Scenario(BaseScenario):
     def active_adversaries(self, world):
         return [agent for agent in world.agents if agent.adversary and agent.active]
 
-    def reward(self, agent, world):
+    def reward(self, agent, world, action):
         main_reward = self.adversary_reward(agent, world) if agent.adversary else self.agent_reward(agent, world)
         return main_reward
 
-    def agent_reward(self, agent, world, action):
+    def agent_reward(self, agent, world):
         if agent.active:
             # Agents are negatively rewarded if caught by adversaries
             rew = 0.1
@@ -153,7 +155,7 @@ class Scenario(BaseScenario):
         else:
             return 0.0
 
-    def adversary_reward(self, agent, world, action):
+    def adversary_reward(self, agent, world):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
         shape = False

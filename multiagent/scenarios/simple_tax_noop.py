@@ -73,6 +73,13 @@ class Scenario(BaseScenario):
     def reset_world(self, world):
         world.origin = np.array([world.size/2, world.size/2])
 
+        print('world size = {}'.format(world.size))
+        print('pred vel = {}'.format(world.agents[0].max_speed))
+        print('prey vel = {}'.format(world.agents[-1].max_speed))
+        print('tax = {}'.format(world.tax))
+        print('action penalty = {}'.format(world.action_penalty))
+        print('capture reward = {}'.format(world.cap_reward))
+
         # agent color
         for i, agent in enumerate(world.agents):
             if agent.adversary:
