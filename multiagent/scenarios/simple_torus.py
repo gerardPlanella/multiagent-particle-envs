@@ -25,6 +25,7 @@ class Scenario(BaseScenario):
         world.partial = partial
         world.symmetric = symmetric
         world.predator_colors = COLOR_SCHEMES[color_scheme]
+        world.tax = 0.0
 
         print('world size = {}'.format(world.size))
         print('pred vel = {}'.format(pred_vel))
