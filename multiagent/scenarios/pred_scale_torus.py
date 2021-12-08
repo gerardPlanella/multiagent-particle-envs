@@ -11,7 +11,7 @@ COLOR_SCHEMES = {
 }
 
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, max_preds=10, pred_vel=1.2, prey_vel=1.0, discrete=True, 
+    def make_world(self, size=6.0, n_preds=3, max_preds=10, padding_type='zero', pred_vel=1.2, prey_vel=1.0, discrete=True, 
                    partial=False, symmetric=False, color_scheme='regular'):
                    
         world = World()
@@ -27,6 +27,7 @@ class Scenario(BaseScenario):
         world.predator_colors = COLOR_SCHEMES[color_scheme]
         world.tax = 0.0
         world.max_preds = max_preds
+        world.padding_type = padding_type
 
         print('world size = {}'.format(world.size))
         print('pred vel = {}'.format(pred_vel))
@@ -191,8 +192,12 @@ class Scenario(BaseScenario):
 
         for i in range(world.max_preds):
             if i >= len(world.agents):
-                # add zeros for position
-                other_pos.append(np.zeros_like(ag.state.p_pos))
+                if world.padding_type == 'zero':
+                    # add zeros for position
+                    other_pos.append(np.zeros_like(ag.state.p_pos))
+                else:
+                    # add random coordinates for position
+                    other_pos.append(np.random.uniform(0.0, world.size, size=2))
             else:
                 ag = world.agents[i]
                 if ag is agent: continue
