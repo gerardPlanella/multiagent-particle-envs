@@ -11,7 +11,7 @@ COLOR_SCHEMES = {
 }
 
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, max_preds=10, padding_type='zero', pred_vel=1.2, prey_vel=1.0, discrete=True, 
+    def make_world(self, size=6.0, n_preds=3, max_preds=7, padding_type='zero', pred_vel=1.2, prey_vel=1.0, discrete=True, 
                    partial=False, symmetric=False, color_scheme='regular'):
                    
         world = World()

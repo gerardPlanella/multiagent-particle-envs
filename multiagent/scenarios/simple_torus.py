@@ -11,7 +11,7 @@ COLOR_SCHEMES = {
 }
 
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, discrete=True, 
+    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, rew_shape=False, discrete=True, 
                    partial=False, symmetric=False, color_scheme='regular'):
                    
         world = World()
@@ -24,6 +24,7 @@ class Scenario(BaseScenario):
         world.use_sensor_range = False
         world.partial = partial
         world.symmetric = symmetric
+        world.shape = rew_shape
         world.predator_colors = COLOR_SCHEMES[color_scheme]
         world.tax = 0.0
 
@@ -159,13 +160,16 @@ class Scenario(BaseScenario):
     def adversary_reward(self, agent, world):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
-        shape = False
         agents = self.active_good_agents(world)
         adversaries = self.active_adversaries(world)
-        if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
+        if world.shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
             for adv in adversaries:
-                # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
-                rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                if world.torus:
+                    # shaped by toroidal distance of closest predator
+                    rew -= 0.1 * min([toroidal_distance(a.state.p_pos, adv.state.p_pos, world.size) for a in agents])
+                else:
+                    # shaped by euclidean distance of closest predator
+                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
         if agent.collide:
             capture_idxs = []
             for i, ag in enumerate(agents):
