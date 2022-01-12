@@ -30,6 +30,25 @@ def toroidal_distance(d1, d2, size):
 
     return np.sqrt(dx*dx + dy*dy)
 
+def toroidal_difference(d1, d2, size):
+    dx = d1[0] - d2[0]
+    dy = d1[1] - d2[1]
+
+    # adjust dx
+    if dx > size/2:
+        dx = dx - size
+    elif dx < -size/2:
+        dx = dx + size
+
+    # adjust dy
+    if dy > size/2:
+        dy = dy - size
+    elif dy < -size/2:
+        dy = dy + size
+
+
+    return np.array([dx, dy])
+
 # ---------------------------------------------------
 # Image / Video
 # ---------------------------------------------------
