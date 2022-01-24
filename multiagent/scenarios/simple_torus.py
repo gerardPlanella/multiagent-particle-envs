@@ -12,7 +12,7 @@ COLOR_SCHEMES = {
 
 class Scenario(BaseScenario):
     def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, rew_shape=False, discrete=True, 
-                   partial=False, symmetric=False, color_scheme='regular'):
+                   partial=False, symmetric=False, visualize_embedding=False, color_scheme='regular'):
                    
         world = World()
         # set any world properties
@@ -57,9 +57,12 @@ class Scenario(BaseScenario):
             else:
                 agent.max_speed = prey_vel
 
-
         # discrete actions
         world.discrete_actions = discrete
+
+        # at test-time, visualize potential field embedding?
+        world.visualize_embedding = visualize_embedding
+        world.embedding = None
 
         # make initial conditions
         self.reset_world(world)
