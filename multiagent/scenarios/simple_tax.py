@@ -13,7 +13,7 @@ COLOR_SCHEMES = {
 
 class Scenario(BaseScenario):
     def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, tax=0.1, discrete=True,
-                   partial=False, symmetric=False, color_scheme='regular'):
+                   partial=False, symmetric=False, visualize_embedding=False, color_scheme='regular'):
         world = World()
         # set any world properties
         world.n_steps = 500
@@ -59,6 +59,10 @@ class Scenario(BaseScenario):
 
         # discrete actions
         world.discrete_actions = discrete
+
+        # at test-time, visualize potential field embedding?
+        world.visualize_embedding = visualize_embedding
+        world.embedding = None
 
         # make initial conditions
         self.reset_world(world)
@@ -132,11 +136,11 @@ class Scenario(BaseScenario):
     def active_adversaries(self, world):
         return [agent for agent in world.agents if agent.adversary and agent.active]
 
-    def reward(self, agent, world):
+    def reward(self, agent, world, action):
         main_reward = self.adversary_reward(agent, world) if agent.adversary else self.agent_reward(agent, world)
         return main_reward
 
-    def agent_reward(self, agent, world, action):
+    def agent_reward(self, agent, world):
         if agent.active:
             # Agents are negatively rewarded if caught by adversaries
             rew = 0.1
@@ -151,7 +155,7 @@ class Scenario(BaseScenario):
         else:
             return 0.0
 
-    def adversary_reward(self, agent, world, action):
+    def adversary_reward(self, agent, world):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
         agents = self.active_good_agents(world)

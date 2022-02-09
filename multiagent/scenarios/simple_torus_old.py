@@ -4,40 +4,29 @@ from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
-COLOR_SCHEMES = {
-    'regular' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35])],
-    'two_slow' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.0]), np.array([0.55, 0.25, 0.0])],
-    'staggered' : [np.array([0.85, 0.35, 0.35]), np.array([0.55, 0.25, 0.65]), np.array([0.55, 0.25, 0.0])]
-}
-
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, rew_shape=False, discrete=True, 
-                   partial=False, symmetric=False, visualize_embedding=False, color_scheme='regular'):
-                   
+    def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
+        world.env_key = config.env
         world.n_steps = 500
         world.torus = True
         world.dim_c = 2
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
-        world.partial = partial
-        world.symmetric = symmetric
-        world.shape = rew_shape
-        world.predator_colors = COLOR_SCHEMES[color_scheme]
-        world.tax = 0.0
 
         print('world size = {}'.format(world.size))
-        print('num preds = {}'.format(n_preds))
-        print('pred vel = {}'.format(pred_vel))
-        print('prey vel = {}'.format(prey_vel))
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 0
 
+        world.partial = False
+        world.visualize_embedding = False
+        world.embedding = None
+        
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -50,37 +39,20 @@ class Scenario(BaseScenario):
             agent.adversary = True if i < num_adversaries else False
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 20.0 if agent.adversary else 20.0
-            if agent.adversary:
-                if isinstance(pred_vel, list):
-                    agent.max_speed = pred_vel[i]
-                else:
-                    agent.max_speed = pred_vel 
-            else:
-                agent.max_speed = prey_vel
+            agent.max_speed = pred_vel if agent.adversary else prey_vel # better visibility
 
         # discrete actions
         world.discrete_actions = discrete
-
-        # at test-time, visualize potential field embedding?
-        world.visualize_embedding = visualize_embedding
-        world.embedding = None
 
         # make initial conditions
         self.reset_world(world)
         return world
 
     def reset_world(self, world):
-        world.origin = np.array([world.size/2, world.size/2])
-
-        # agent colors
+        # random properties for agents
         for i, agent in enumerate(world.agents):
-            if agent.adversary:
-                # agent.color = world.predator_colors[i]
-                agent.color = np.array([0.85, 0.35, 0.35])
-            else:
-                agent.color = np.array([0.35, 0.85, 0.35]) 
-
-        # properties for landmarks
+            agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
+            # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
 
@@ -89,11 +61,13 @@ class Scenario(BaseScenario):
         while redraw:
             # draw location for prey
             prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
-            # prey_pt = np.array([0., 0.])
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # init_pts = [np.array([5., 3.]), np.array([2., 4.73205081]), np.array([1.99999999, 1.2679492 ])]
+            # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
+            # radius = np.random.uniform(0.0, 5.0)
+            # radius = 2.0
+            # init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -166,16 +140,13 @@ class Scenario(BaseScenario):
     def adversary_reward(self, agent, world):
         # Adversaries are rewarded for collisions with agents
         rew = -0.1
+        shape = False
         agents = self.active_good_agents(world)
         adversaries = self.active_adversaries(world)
-        if world.shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
+        if shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
             for adv in adversaries:
-                if world.torus:
-                    # shaped by toroidal distance of closest predator
-                    rew -= 0.1 * min([toroidal_distance(a.state.p_pos, adv.state.p_pos, world.size) for a in agents])
-                else:
-                    # shaped by euclidean distance of closest predator
-                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
+                rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
         if agent.collide:
             capture_idxs = []
             for i, ag in enumerate(agents):
@@ -197,23 +168,17 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # pred/prey observations
-        other_pos = []
+        other_pos, other_coords, viz_bits = [], [], []
         for other in world.agents:
             if other is agent: continue
 
-            # if world.partial:
-                # partial observations
-                # if agent.adversary:
-                    # if not other.adversary:
-                        # other_pos.append(other.state.p_pos)
-                # else:
-                    # other_pos.append(other.state.p_pos)
-            # else:
-                # full observations
+            # position of other agents
             other_pos.append(other.state.p_pos)
+            other_coords.append(other.state.coords)
 
-        # if world.symmetric and agent.adversary:
-            # other_pos = self.symmetrize(agent.id, other_pos)
+        # if agent.adversary:
+        #     other_pos = self.symmetrize(agent.id, other_pos)
+        #     other_coords = self.symmetrize(agent.id, other_coords)
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
         return obs
@@ -227,5 +192,3 @@ class Scenario(BaseScenario):
             return arr
         else:
             return [arr[1], arr[0], arr[2]]
-        
-
