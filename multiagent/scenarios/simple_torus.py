@@ -89,7 +89,7 @@ class Scenario(BaseScenario):
         while redraw:
             # draw location for prey
             prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
-            # prey_pt = np.array([0., 0.])
+            # prey_pt = np.array([3., 3.])
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
@@ -201,19 +201,19 @@ class Scenario(BaseScenario):
         for other in world.agents:
             if other is agent: continue
 
-            # if world.partial:
+            if world.partial:
                 # partial observations
-                # if agent.adversary:
-                    # if not other.adversary:
-                        # other_pos.append(other.state.p_pos)
-                # else:
-                    # other_pos.append(other.state.p_pos)
-            # else:
+                if agent.adversary:
+                    if not other.adversary:
+                        other_pos.append(other.state.p_pos)
+                else:
+                    other_pos.append(other.state.p_pos)
+            else:
                 # full observations
-            other_pos.append(other.state.p_pos)
+                other_pos.append(other.state.p_pos)
 
-        # if world.symmetric and agent.adversary:
-            # other_pos = self.symmetrize(agent.id, other_pos)
+        if world.symmetric and agent.adversary:
+            other_pos = self.symmetrize(agent.id, other_pos)
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
         return obs
