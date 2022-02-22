@@ -94,6 +94,7 @@ class Scenario(BaseScenario):
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
             # init_pts = [np.array([5., 3.]), np.array([2., 4.73205081]), np.array([1.99999999, 1.2679492 ])]
+            # init_pts = [np.array([7., 5.]), np.array([4., 6.73205081]), np.array([3.99999999, 3.2679492 ])]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
