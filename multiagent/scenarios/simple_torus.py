@@ -3,6 +3,7 @@ import math
 from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
+from scipy.spatial import distance
 
 COLOR_SCHEMES = {
     'regular' : [np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35]), np.array([0.85, 0.35, 0.35])],
@@ -11,11 +12,15 @@ COLOR_SCHEMES = {
 }
 
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, rew_shape=False, discrete=True, 
-                   partial=False, symmetric=False, visualize_embedding=False, color_scheme='regular'):
+    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, obs_type='vector', obs_dims=10, rew_shape=False, 
+                   discrete=True, partial=False, symmetric=False, visualize_embedding=False, color_scheme='regular'):
                    
         world = World()
         # set any world properties
+        world.obs_type = obs_type
+        world.obs_dims = obs_dims 
+        world.obs_bins = np.arange(obs_dims)
+        world.bin_scale = obs_dims / size
         world.n_steps = 500
         world.torus = True
         world.dim_c = 2
@@ -197,21 +202,92 @@ class Scenario(BaseScenario):
             return agent.captured
 
     def observation(self, agent, world):
+        if agent.adversary:
+            return self.predator_observation(agent, world)
+        else:
+            return self.prey_observation(agent, world)
+
+    def predator_observation(self, agent, world):
+        if world.obs_type == 'vector':
+            # pred/prey observations
+            other_pos = []
+            for other in world.agents:
+                if other is agent: continue
+
+                if world.partial:
+                    # partial observations
+                    if agent.adversary:
+                        if not other.adversary:
+                            other_pos.append(other.state.p_pos)
+                    else:
+                        other_pos.append(other.state.p_pos)
+                else:
+                    # full observations
+                    other_pos.append(other.state.p_pos)
+
+            if world.symmetric and agent.adversary:
+                other_pos = self.symmetrize(agent.id, other_pos)
+
+            obs = np.concatenate([agent.state.p_pos] + other_pos)
+            return obs
+        
+        elif world.obs_type == 'rbf':
+            obs_vec = []
+            obs_map_preds = np.zeros((world.obs_dims, world.obs_dims))
+            obs_map_prey = np.zeros((world.obs_dims, world.obs_dims))
+            eps_pred = 0.75
+            eps_prey = 0.5
+            w_pred = 0.5
+            w_prey = 0.5
+
+            # np.set_printoptions(linewidth=250, suppress=True, precision=3)
+            idxs = np.indices((world.obs_dims, world.obs_dims))
+            idxs = np.flip(idxs, axis=(0,1))
+            idxs_flat = np.reshape(idxs, (2, world.obs_dims*world.obs_dims))
+            idxs_flat = np.swapaxes(idxs_flat, 0, 1)
+
+            for i, other in enumerate(world.agents):
+                if other is agent: continue
+
+                # full observations
+                other_pos = other.state.p_pos * world.bin_scale
+                binned_pos = np.digitize(other_pos, world.obs_bins) - 1
+
+                # toroidal cityblock distance
+                dist = idxs_flat - binned_pos
+                dist = (dist > world.obs_dims/2) * -world.obs_dims + dist
+                dist = (dist < -world.obs_dims/2) * world.obs_dims + dist
+                dist = np.sum(np.abs(dist), axis=1)
+                dist = np.reshape(dist, (world.obs_dims, world.obs_dims))
+
+                if other.adversary:
+                    pf = np.exp(-(eps_pred*dist)**2)   
+                    obs_map_preds += w_pred * pf
+                else:
+                    pf = np.exp(-(eps_prey*dist)**2)   
+                    obs_map_prey += w_prey * pf
+
+                # keep raw positions around
+                obs_vec.append(other.state.p_pos)
+
+            # bin current agent
+            agent_pos = agent.state.p_pos * world.bin_scale
+            binned_pos = np.digitize(agent_pos, world.obs_bins) - 1
+            obs_map_preds[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
+
+            return (np.stack([obs_map_preds, obs_map_prey]), np.concatenate([agent.state.p_pos] + obs_vec))
+
+        else:
+            return None
+
+    def prey_observation(self, agent, world):
         # pred/prey observations
         other_pos = []
         for other in world.agents:
             if other is agent: continue
 
-            if world.partial:
-                # partial observations
-                if agent.adversary:
-                    if not other.adversary:
-                        other_pos.append(other.state.p_pos)
-                else:
-                    other_pos.append(other.state.p_pos)
-            else:
-                # full observations
-                other_pos.append(other.state.p_pos)
+            # full observations
+            other_pos.append(other.state.p_pos)
 
         if world.symmetric and agent.adversary:
             other_pos = self.symmetrize(agent.id, other_pos)
