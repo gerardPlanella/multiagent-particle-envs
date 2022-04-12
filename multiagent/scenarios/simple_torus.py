@@ -95,12 +95,13 @@ class Scenario(BaseScenario):
         while redraw:
             # draw location for prey
             prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
-            # prey_pt = np.array([3., 3.])
+            # prey_pt = np.array([0., 0.])
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
             # init_pts = [np.array([5., 3.]), np.array([2., 4.73205081]), np.array([1.99999999, 1.2679492 ])]
             # init_pts = [np.array([7., 5.]), np.array([4., 6.73205081]), np.array([3.99999999, 3.2679492 ])]
+            # init_pts = [np.array([1., 3.]), np.array([3., 5.]), np.array([5., 3])]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -234,11 +235,11 @@ class Scenario(BaseScenario):
         
         elif world.obs_type == 'rbf':
             obs_vec = []
-            current_map = np.zeros((world.obs_dims, world.obs_dims))
+            # current_map = np.zeros((world.obs_dims, world.obs_dims))
             obs_map_preds = np.zeros((world.obs_dims, world.obs_dims))
             obs_map_prey = np.zeros((world.obs_dims, world.obs_dims))
             eps_pred = 0.75
-            eps_prey = 0.75
+            eps_prey = 0.5
             w_pred = 0.45
             w_prey = 0.45
 
@@ -277,8 +278,8 @@ class Scenario(BaseScenario):
             # bin current agent
             agent_pos = agent.state.p_pos * world.bin_scale
             binned_pos = np.digitize(agent_pos, world.obs_bins) - 1
-            current_map[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
-            # obs_map_preds[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
+            # current_map[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
+            obs_map_preds[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
 
             # print('Agent {}'.format(agent.id))
             # if agent.id == 0:
@@ -288,16 +289,16 @@ class Scenario(BaseScenario):
             # print('obs map pred = \n{}\n'.format(obs_map_preds))
             # print('obs map prey = \n{}\n'.format(obs_map_prey))
 
-            
-            return (np.stack([current_map, obs_map_preds, obs_map_prey]), np.concatenate([agent.state.p_pos] + obs_vec))
+            return (np.stack([obs_map_preds, obs_map_prey]), np.concatenate([agent.state.p_pos] + obs_vec))
+            # return (np.stack([current_map, obs_map_preds, obs_map_prey]), np.concatenate([agent.state.p_pos] + obs_vec))
 
         elif world.obs_type == 'rbf_mlp':
             obs_vec = []
-            current_map = np.zeros((world.obs_dims, world.obs_dims))
             obs_map_preds = np.zeros((world.obs_dims, world.obs_dims))
             obs_map_prey = np.zeros((world.obs_dims, world.obs_dims))
-            eps_pred = 0.75
-            eps_prey = 0.75
+
+            eps_pred = 1.5
+            eps_prey = 1.5
             w_pred = 0.45
             w_prey = 0.45
 
@@ -311,45 +312,49 @@ class Scenario(BaseScenario):
 
                 # full observations
                 other_pos = other.state.p_pos * world.bin_scale
-                binned_pos = np.digitize(other_pos, world.obs_bins) - 1
+                # binned_pos = np.digitize(other_pos, world.obs_bins) - 1
 
-                # toroidal cityblock distance
-                dist = idxs_flat - binned_pos
+                # toroidal distance
+                dist = idxs_flat - other_pos
                 dist = (dist > world.obs_dims/2) * -world.obs_dims + dist
                 dist = (dist < -world.obs_dims/2) * world.obs_dims + dist
-                # dist = np.sum(np.abs(dist), axis=1) # cityblock distance
                 dist = np.sqrt(np.sum(np.abs(dist)**2, axis=1)) # euclidean distance
                 dist = np.reshape(dist, (world.obs_dims, world.obs_dims))
 
                 if other.adversary:
+                    # if agent.id == 0:
+                        # print('teammate pos = {}, scaled pos = {}, binned pos = {}'.format(other.state.p_pos, other_pos, binned_pos))
                     pf = np.exp(-(eps_pred*dist)**2)   
                     obs_map_preds += w_pred * pf
-                    # obs_map_preds[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
                 else:
+                    # if agent.id == 0:
+                        # print('prey pos = {}, binned pos = {}'.format(other_pos, binned_pos))
                     pf = np.exp(-(eps_prey*dist)**2)   
                     obs_map_prey += w_prey * pf
-                    # obs_map_prey[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
 
                 # keep raw positions around
                 obs_vec.append(other.state.p_pos)
 
-            # bin current agent
-            agent_pos = agent.state.p_pos * world.bin_scale
-            binned_pos = np.digitize(agent_pos, world.obs_bins) - 1
-            current_map[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
-            # obs_map_preds[world.obs_dims - (int(binned_pos[1])+1), int(binned_pos[0])] = 1
+            # current agent relative prey
+            agent_pos = agent.state.p_pos
+
+            # relative pos
+            prey_pos = obs_vec[-1]
+            agent_pos = agent_pos - prey_pos
+            agent_pos = (agent_pos > world.size/2) * -world.size + agent_pos
+            agent_pos = (agent_pos < -world.size/2) * world.size + agent_pos
 
             # print('Agent {}'.format(agent.id))
             # if agent.id == 0:
                 # np.set_printoptions(linewidth=2500, suppress=False, precision=3, threshold=10000)
-            # np.set_printoptions(linewidth=2500, suppress=True, precision=3, threshold=10000)
-            # print('obs map curr = \n{}\n'.format(current_map))
-            # print('obs map pred = \n{}\n'.format(obs_map_preds))
-            # print('obs map prey = \n{}\n'.format(obs_map_prey))
+                # print('pred pos = {}'.format(agent_pos))
+                # print('obs map pred = \n{}\n'.format(obs_map_preds))
+                # print('obs map pred v2 = \n{}\n'.format(obs_map_preds_v2))
+                # print('obs map prey = \n{}\n'.format(obs_map_prey))
+                # print('obs map prey v2 = \n{}\n'.format(obs_map_prey_v2))
 
-            
-            return (np.concatenate([np.ravel(current_map), np.ravel(obs_map_preds), np.ravel(obs_map_prey)]),
-                    np.concatenate([agent.state.p_pos] + obs_vec))
+            obs = np.concatenate([agent_pos, np.ravel(obs_map_preds), np.ravel(obs_map_prey)])
+            return (obs, np.concatenate([agent.state.p_pos] + obs_vec))
         else:
             return None
 
