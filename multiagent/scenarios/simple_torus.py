@@ -335,23 +335,23 @@ class Scenario(BaseScenario):
                 # keep raw positions around
                 obs_vec.append(other.state.p_pos)
 
-            # current agent relative prey
+            # current agent relative prey (scaled)
             agent_pos = agent.state.p_pos
+            agent_pos = agent_pos / world.size
 
             # relative pos
-            prey_pos = obs_vec[-1]
-            agent_pos = agent_pos - prey_pos
-            agent_pos = (agent_pos > world.size/2) * -world.size + agent_pos
-            agent_pos = (agent_pos < -world.size/2) * world.size + agent_pos
+            # prey_pos = obs_vec[-1]
+            # agent_pos = agent_pos - prey_pos
+            # agent_pos = (agent_pos > world.size/2) * -world.size + agent_pos
+            # agent_pos = (agent_pos < -world.size/2) * world.size + agent_pos
+            # agent_pos = agent_pos / (world.size / 2)
 
             # print('Agent {}'.format(agent.id))
+            # np.set_printoptions(linewidth=2500, suppress=True, precision=3, threshold=10000)
             # if agent.id == 0:
-                # np.set_printoptions(linewidth=2500, suppress=False, precision=3, threshold=10000)
                 # print('pred pos = {}'.format(agent_pos))
                 # print('obs map pred = \n{}\n'.format(obs_map_preds))
-                # print('obs map pred v2 = \n{}\n'.format(obs_map_preds_v2))
                 # print('obs map prey = \n{}\n'.format(obs_map_prey))
-                # print('obs map prey v2 = \n{}\n'.format(obs_map_prey_v2))
 
             obs = np.concatenate([agent_pos, np.ravel(obs_map_preds), np.ravel(obs_map_prey)])
             return (obs, np.concatenate([agent.state.p_pos] + obs_vec))
