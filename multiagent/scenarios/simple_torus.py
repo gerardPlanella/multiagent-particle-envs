@@ -337,13 +337,13 @@ class Scenario(BaseScenario):
 
             # current agent relative prey (scaled)
             agent_pos = agent.state.p_pos
-            agent_pos = agent_pos / world.size
+            # agent_pos = agent_pos / world.size
 
             # relative pos
-            # prey_pos = obs_vec[-1]
-            # agent_pos = agent_pos - prey_pos
-            # agent_pos = (agent_pos > world.size/2) * -world.size + agent_pos
-            # agent_pos = (agent_pos < -world.size/2) * world.size + agent_pos
+            prey_pos = obs_vec[-1]
+            agent_pos = agent_pos - prey_pos
+            agent_pos = (agent_pos > world.size/2) * -world.size + agent_pos
+            agent_pos = (agent_pos < -world.size/2) * world.size + agent_pos
             # agent_pos = agent_pos / (world.size / 2)
 
             # print('Agent {}'.format(agent.id))
