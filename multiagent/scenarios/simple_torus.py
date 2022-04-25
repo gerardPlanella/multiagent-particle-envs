@@ -296,7 +296,7 @@ class Scenario(BaseScenario):
                 obs_map_preds = np.max(obs_map_preds, axis=0)
             else:
                 # no normal ghosts
-                obs_map_preds = np.zeros((self.layout.height, self.layout.width))
+                obs_map_preds = np.zeros((world.obs_dims, world.obs_dims))
 
 
             # current agent relative prey (scaled)
