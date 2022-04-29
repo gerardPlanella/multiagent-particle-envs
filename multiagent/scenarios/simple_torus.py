@@ -35,12 +35,7 @@ class Scenario(BaseScenario):
         world.shape = config.rew_shape
         world.predator_colors = COLOR_SCHEMES[config.pred_colors]
         world.tax = 0.0
-        world.init_pos_curriculum = config.init_pos_curriculum
-        if world.init_pos_curriculum:
-            world.pred_init_distance = 0.25
-            world.pred_init_distance_start = 0.25
-            world.pred_init_distance_end = distance.euclidean(world.origin, np.array([0.,0.]))
-            world.decay = config.decay
+
 
         print('world size = {}'.format(world.size))
         print('num preds = {}'.format(config.n_preds))
@@ -72,6 +67,14 @@ class Scenario(BaseScenario):
             else:
                 agent.max_speed = config.prey_vel
 
+        # curriculum over initialization position
+        world.init_pos_curriculum = config.init_pos_curriculum
+        if world.init_pos_curriculum:
+            world.pred_init_distance = 0.25 * self.n_preds
+            world.pred_init_distance_start = 0.25 * self.n_preds
+            world.pred_init_distance_end = distance.euclidean(world.origin, np.array([0.,0.]))
+            world.decay = config.decay
+
         # discrete actions
         world.discrete_actions = config.discrete
 
@@ -101,6 +104,7 @@ class Scenario(BaseScenario):
         # generate predators in random circle of random radius with random angles
         redraw = True
         while redraw:
+            print('redrawing!')
             # draw location for prey
             prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
             # prey_pt = np.array([0., 0.])
