@@ -13,35 +13,42 @@ COLOR_SCHEMES = {
 }
 
 class Scenario(BaseScenario):
-    def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, obs_type='vector', obs_dims=10, rew_shape=False, 
-                   discrete=True, partial=False, symmetric=False, visualize_embedding=False, color_scheme='regular'):
-                   
+    # def make_world(self, size=6.0, n_preds=3, pred_vel=1.2, prey_vel=1.0, obs_type='vector', obs_dims=10, rew_shape=False, 
+    #                discrete=True, partial=False, symmetric=False, visualize_embedding=False, init_pos_curriculum=False, 
+    #                decay=15000, color_scheme='regular'):
+    def make_world(self, config):
         world = World()
         # set any world properties
-        world.obs_type = obs_type
-        if obs_dims:
-            world.obs_dims = obs_dims
-            world.obs_bins = np.arange(obs_dims)
-            world.bin_scale = obs_dims / size
+        world.obs_type = config.obs_type
+        if config.obs_dims is not None:
+            world.obs_dims = config.obs_dims
+            world.obs_bins = np.arange(config.obs_dims)
+            world.bin_scale = config.obs_dims / config.world_size
         world.n_steps = 500
         world.torus = True
         world.dim_c = 2
-        world.size = size
+        world.size = config.world_size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
-        world.partial = partial
-        world.symmetric = symmetric
-        world.shape = rew_shape
-        world.predator_colors = COLOR_SCHEMES[color_scheme]
+        world.symmetric = config.symmetric
+        world.partial = False
+        world.shape = config.rew_shape
+        world.predator_colors = COLOR_SCHEMES[config.pred_colors]
         world.tax = 0.0
+        world.init_pos_curriculum = config.init_pos_curriculum
+        if world.init_pos_curriculum:
+            world.pred_init_distance = 0.25
+            world.pred_init_distance_start = 0.25
+            world.pred_init_distance_end = distance.euclidean(world.origin, np.array([0.,0.]))
+            world.decay = config.decay
 
         print('world size = {}'.format(world.size))
-        print('num preds = {}'.format(n_preds))
-        print('pred vel = {}'.format(pred_vel))
-        print('prey vel = {}'.format(prey_vel))
+        print('num preds = {}'.format(config.n_preds))
+        print('pred vel = {}'.format(config.pred_vel))
+        print('prey vel = {}'.format(config.prey_vel))
 
         num_good_agents = 1
-        self.n_preds = num_adversaries = n_preds
+        self.n_preds = num_adversaries = config.n_preds
         num_agents = num_adversaries + num_good_agents
         num_landmarks = 0
 
@@ -58,25 +65,25 @@ class Scenario(BaseScenario):
             agent.size = 0.075 if agent.adversary else 0.05
             agent.accel = 20.0 if agent.adversary else 20.0
             if agent.adversary:
-                if isinstance(pred_vel, list):
-                    agent.max_speed = pred_vel[i]
+                if isinstance(config.pred_vel, list):
+                    agent.max_speed = config.pred_vel[i]
                 else:
-                    agent.max_speed = pred_vel 
+                    agent.max_speed = config.pred_vel 
             else:
-                agent.max_speed = prey_vel
+                agent.max_speed = config.prey_vel
 
         # discrete actions
-        world.discrete_actions = discrete
+        world.discrete_actions = config.discrete
 
         # at test-time, visualize potential field embedding?
-        world.visualize_embedding = visualize_embedding
+        world.visualize_embedding = config.visualize_embedding
         world.embedding = None
 
         # make initial conditions
-        self.reset_world(world)
+        self.reset_world(world, 0)
         return world
 
-    def reset_world(self, world):
+    def reset_world(self, world, epoch):
         world.origin = np.array([world.size/2, world.size/2])
 
         # agent colors
@@ -99,7 +106,12 @@ class Scenario(BaseScenario):
             # prey_pt = np.array([0., 0.])
 
             # draw predator locations
-            init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            if world.init_pos_curriculum:
+                world.pred_init_distance = world.pred_init_distance_end - (world.pred_init_distance_end - world.pred_init_distance_start) * max((world.decay - epoch)/world.decay, 0.0)
+                init_pts = [world.origin + np.random.normal(0.0, world.pred_init_distance, size=2) for _ in range(self.n_preds)]
+            else:
+                init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+
             # init_pts = [np.array([5., 3.]), np.array([2., 4.73205081]), np.array([1.99999999, 1.2679492 ])]
             # init_pts = [np.array([7., 5.]), np.array([4., 6.73205081]), np.array([3.99999999, 3.2679492 ])]
             # init_pts = [np.array([1., 3.]), np.array([3., 5.]), np.array([5., 3])]
@@ -217,16 +229,16 @@ class Scenario(BaseScenario):
             for other in world.agents:
                 if other is agent: continue
 
-                if world.partial:
-                    # partial observations
-                    if agent.adversary:
-                        if not other.adversary:
-                            other_pos.append(other.state.p_pos)
-                    else:
-                        other_pos.append(other.state.p_pos)
-                else:
-                    # full observations
-                    other_pos.append(other.state.p_pos)
+                # if world.partial:
+                #     # partial observations
+                #     if agent.adversary:
+                #         if not other.adversary:
+                #             other_pos.append(other.state.p_pos)
+                #     else:
+                #         other_pos.append(other.state.p_pos)
+                # else:
+                # full observations
+                other_pos.append(other.state.p_pos)
 
             if world.symmetric and agent.adversary:
                 other_pos = self.symmetrize(agent.id, other_pos)
