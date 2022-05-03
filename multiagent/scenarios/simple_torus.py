@@ -36,7 +36,6 @@ class Scenario(BaseScenario):
         world.predator_colors = COLOR_SCHEMES[config.pred_colors]
         world.tax = 0.0
 
-
         print('world size = {}'.format(world.size))
         print('num preds = {}'.format(config.n_preds))
         print('pred vel = {}'.format(config.pred_vel))
@@ -104,7 +103,6 @@ class Scenario(BaseScenario):
         # generate predators in random circle of random radius with random angles
         redraw = True
         while redraw:
-            print('redrawing!')
             # draw location for prey
             prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
             # prey_pt = np.array([0., 0.])
