@@ -81,6 +81,9 @@ class Landmark(Entity):
      def __init__(self):
         super(Landmark, self).__init__()
 
+        # capture (for keepaway)
+        self.captured = None
+
 # properties of agent entities
 class Agent(Entity):
     def __init__(self):
@@ -240,8 +243,10 @@ class World(object):
             if not entity.movable: continue
             # entity.state.p_vel = entity.state.p_vel * (1 - self.damping) # inertia
             if (p_force[i] is not None):
-                # entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
-                entity.state.p_vel = (p_force[i] / entity.mass) * self.dt
+                if isinstance(entity, Landmark):
+                    entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
+                else:
+                    entity.state.p_vel = (p_force[i] / entity.mass) * self.dt
             
             if entity.max_speed is not None:
                 speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))

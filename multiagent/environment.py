@@ -152,9 +152,9 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
-    def reset(self, epoch):
+    def reset(self):
         # reset world
-        self.reset_callback(self.world, epoch)
+        self.reset_callback(self.world)
         # reset renderer
         self._reset_render()
         # record observations for each agent
@@ -294,29 +294,29 @@ class MultiAgentEnv(gym.Env):
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
 
-                if self.world.visualize_embedding and isinstance(entity, Agent) and not entity.adversary:
-                    # add embedding
-                    angles = np.linspace(0, 2*np.pi, len(self.world.embedding), endpoint=False)
+                # if self.world.visualize_embedding and isinstance(entity, Agent) and not entity.adversary:
+                #     # add embedding
+                #     angles = np.linspace(0, 2*np.pi, len(self.world.embedding), endpoint=False)
                     
-                    # positions
-                    points = [0.25*np.array([np.cos(theta), np.sin(theta)]) for theta in angles]
-                    # print(ttt)
+                #     # positions
+                #     points = [0.25*np.array([np.cos(theta), np.sin(theta)]) for theta in angles]
+                #     # print(ttt)
 
-                    import matplotlib.pyplot as plt
-                    palette = plt.get_cmap('coolwarm')
+                #     import matplotlib.pyplot as plt
+                #     palette = plt.get_cmap('coolwarm')
 
-                    # add embedding points to visualization
-                    for p, e in zip(points, self.world.embedding):
-                        # print(p)
-                        # print(e)
-                        # print(palette(e))
-                        color = palette(e)
-                        geom = rendering.make_circle(0.05)
-                        xform_2 = rendering.Transform(translation=tuple(p))
-                        geom.set_color(color[0], color[1], color[2], alpha=1.0)
-                        geom.add_attr(xform)
-                        geom.add_attr(xform_2)
-                        self.extra_geoms.append(geom)
+                #     # add embedding points to visualization
+                #     for p, e in zip(points, self.world.embedding):
+                #         # print(p)
+                #         # print(e)
+                #         # print(palette(e))
+                #         color = palette(e)
+                #         geom = rendering.make_circle(0.05)
+                #         xform_2 = rendering.Transform(translation=tuple(p))
+                #         geom.set_color(color[0], color[1], color[2], alpha=1.0)
+                #         geom.add_attr(xform)
+                #         geom.add_attr(xform_2)
+                #         self.extra_geoms.append(geom)
 
             for wall in self.world.walls:
                 corners = ((wall.axis_pos - 0.5 * wall.width, wall.endpoints[0]),
@@ -367,30 +367,30 @@ class MultiAgentEnv(gym.Env):
                         self.render_geoms[e].set_color(*entity.color, 0.5)
 
 
-                    if self.world.visualize_embedding and isinstance(entity, Agent) and not entity.adversary:
-                        # add embedding
-                        angles = np.linspace(0, 2*np.pi, len(self.world.embedding), endpoint=False)
+                    # if self.world.visualize_embedding and isinstance(entity, Agent) and not entity.adversary:
+                    #     # add embedding
+                    #     angles = np.linspace(0, 2*np.pi, len(self.world.embedding), endpoint=False)
                         
-                        # positions
-                        points = [0.25*np.array([np.cos(theta), np.sin(theta)]) for theta in angles]
+                    #     # positions
+                    #     points = [0.25*np.array([np.cos(theta), np.sin(theta)]) for theta in angles]
 
-                        import matplotlib.pyplot as plt
-                        palette = plt.get_cmap('coolwarm')
+                    #     import matplotlib.pyplot as plt
+                    #     palette = plt.get_cmap('coolwarm')
 
-                        # print(self.world.embedding)
+                    #     # print(self.world.embedding)
 
-                        # add embedding points to visualization
-                        for idx in range(len(self.extra_geoms)):
-                            # print(p)
-                            # print(e)
-                            # print(palette(e))
-                            color = palette(self.world.embedding[idx])
-                            # geom = rendering.make_circle(0.05)
-                            # xform_2 = rendering.Transform(translation=tuple(p))
-                            self.extra_geoms[idx].set_color(color[0], color[1], color[2], alpha=1.0)
-                            # geom.add_attr(xform)
-                            # geom.add_attr(xform_2)
-                            # self.extra_geoms.append(geom)
+                    #     # add embedding points to visualization
+                    #     for idx in range(len(self.extra_geoms)):
+                    #         # print(p)
+                    #         # print(e)
+                    #         # print(palette(e))
+                    #         color = palette(self.world.embedding[idx])
+                    #         # geom = rendering.make_circle(0.05)
+                    #         # xform_2 = rendering.Transform(translation=tuple(p))
+                    #         self.extra_geoms[idx].set_color(color[0], color[1], color[2], alpha=1.0)
+                    #         # geom.add_attr(xform)
+                    #         # geom.add_attr(xform_2)
+                    #         # self.extra_geoms.append(geom)
 
             # for g, geom in enumerate(self.extra_geoms):
 
