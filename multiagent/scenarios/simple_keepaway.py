@@ -26,7 +26,8 @@ class Scenario(BaseScenario):
         print('keeper vel = {}'.format(config.prey_vel))
         print('seeker vel = {}'.format(config.pred_vel))
 
-        self.n_seekers = num_seekers = config.n_seekers
+        # self.n_seekers = num_seekers = config.n_seekers
+        self.n_seekers = num_seekers = 1
         self.n_keepers = num_keepers = config.n_keepers
         num_agents = num_seekers + num_keepers
         
@@ -58,8 +59,9 @@ class Scenario(BaseScenario):
             ball.movable = True
             ball.size = 0.075
             ball.initial_mass = 10.0
-            ball.accel = 0.1
-            ball.max_speed = 0.65
+            ball.accel = 1.0
+            ball.max_speed = 0.5
+            # ball.max_speed = 0.25
 
         # discrete actions
         world.discrete_actions = config.discrete
@@ -87,21 +89,23 @@ class Scenario(BaseScenario):
         redraw = True
         while redraw:
             # draw location for seekers
-            seeker_pts = [world.origin + np.random.normal(0.0, 0.0001, size=2) for _ in range(self.n_seekers)]
+            # seeker_pts = [world.origin + np.random.normal(0.0, 0.0001, size=2) for _ in range(self.n_seekers)]
+            seeker_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
 
             # draw predator locations
             keeper_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_keepers)]
 
             # ensure keepers are initialized a reasonable distance away from seekers
-            redraw = any([overlaps(kp, seeker_pts, world.size, threshold=0.5) for kp in keeper_pts])
+            redraw = overlaps(seeker_pt, keeper_pts, world.size, threshold=0.5)
 
         # init ball near one of the keepers
-        starting_keeper_idx = np.random.choice(np.arange(len(keeper_pts)))
+        starting_dists = [toroidal_distance(k, seeker_pt, world.size) for k in keeper_pts]
+        starting_keeper_idx = np.argmax(starting_dists)
         starting_keeper_pt = keeper_pts[starting_keeper_idx]
         ball_pt = starting_keeper_pt + np.random.normal(0.15, 0.2, size=2)
 
         # set initial states
-        init_pts = seeker_pts + keeper_pts
+        init_pts = [seeker_pt] + keeper_pts
         for i, agent in enumerate(world.agents):
             agent.active = True
             agent.captured = False
@@ -236,13 +240,17 @@ class Scenario(BaseScenario):
             if other is agent: continue
 
             # full observations
-            # print('other pos = {}'.format(other.state.p_pos))
+            # if other.adversary:
+            #     print('seeker pos = {}'.format(other.state.p_pos))
+            # else:
+            #     print('keeper pos = {}'.format(other.state.p_pos))
             other_pos.append(other.state.p_pos)
 
         # if world.symmetric and agent.adversary:
         #     other_pos = self.symmetrize(agent.id, other_pos)
 
         obs = np.concatenate([agent.state.p_pos] + other_pos)
+        # print('obs = {}\n'.format(obs))
         return obs
 
     def symmetrize(self, agent_id, arr):
