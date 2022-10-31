@@ -156,26 +156,15 @@ class Scenario(BaseScenario):
         return main_reward
 
     def keeper_reward(self, agent, world):
-        if agent.active:
-            # Keepers are negatively rewarded if ball is caught by seekers
-            rew = 0.01
-            # rew = 0.0
-            shape = False
-            adversaries = self.active_adversaries(world)
-            ball = world.landmarks[0]
-            for adv in adversaries:
-                if self.is_collision(ball, adv):
-                    ball.captured = True 
-                    rew -= 5
-                    break
-            # return rew / 50.
-            return rew
-        else:
-            return 0.0
+        rew = 0.01
+        ball = world.landmarks[0]
+        if self.is_collision(ball, agent):
+            rew += 0.01
+
+        return rew
 
     def seeker_reward(self, agent, world):
         # Seekers are rewarded for collisions with balls
-        # rew = -0.1
         rew = 0.0
         adversaries = self.active_adversaries(world)
         ball = world.landmarks[0]
