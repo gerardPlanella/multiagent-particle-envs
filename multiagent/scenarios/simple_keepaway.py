@@ -10,7 +10,7 @@ class Scenario(BaseScenario):
     def make_world(self, config):
         world = World()
         # set any world properties
-        world.n_steps = 500
+        world.n_steps = 200
         world.torus = True
         world.dim_c = 2
         world.size = config.world_size
@@ -156,10 +156,20 @@ class Scenario(BaseScenario):
         return main_reward
 
     def keeper_reward(self, agent, world):
-        rew = 0.01
+        rew = 0.1
+
+        # ball-bumping reward
         ball = world.landmarks[0]
         if self.is_collision(ball, agent):
-            rew += 0.01
+            rew += 0.1
+
+        # capture penalty
+        adversaries = self.active_adversaries(world)
+        for adv in adversaries:
+            if self.is_collision(ball, adv):
+                ball.captured = True 
+                rew -= 5
+                break
 
         return rew
 
