@@ -25,12 +25,11 @@ class Scenario(BaseScenario):
         print('num seekers = {}'.format(config.n_seekers))
         print('keeper vel = {}'.format(config.prey_vel))
         print('seeker vel = {}'.format(config.pred_vel))
+        print('rew shape = {}'.format(config.rew_shape))
 
-        # self.n_seekers = num_seekers = config.n_seekers
         self.n_seekers = num_seekers = 1
         self.n_keepers = num_keepers = config.n_keepers
         num_agents = num_seekers + num_keepers
-        
 
         # add agents
         world.agents = [Agent() for _ in range(num_agents)]
@@ -156,10 +155,18 @@ class Scenario(BaseScenario):
         return main_reward
 
     def keeper_reward(self, agent, world):
-        rew = 0.1
+        # rew = 0.1
+        rew = 0.0
 
         # ball-bumping reward
         ball = world.landmarks[0]
+        if world.shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
+            if world.torus:
+                # shaped by toroidal distance of closest predator
+                rew -= 0.1 * toroidal_distance(agent.state.p_pos, ball.state.p_pos, world.size)
+            else:
+                # shaped by euclidean distance of closest predator
+                rew -= 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - ball.state.p_pos)))
         if self.is_collision(ball, agent):
             rew += 0.1
 
@@ -168,7 +175,7 @@ class Scenario(BaseScenario):
         for adv in adversaries:
             if self.is_collision(ball, adv):
                 ball.captured = True 
-                rew -= 5
+                rew -= 10
                 break
 
         return rew
@@ -178,13 +185,13 @@ class Scenario(BaseScenario):
         rew = 0.0
         adversaries = self.active_adversaries(world)
         ball = world.landmarks[0]
-        if world.shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
-            if world.torus:
-                # shaped by toroidal distance of closest predator
-                rew -= 0.1 * toroidal_distance(agent.state.p_pos, ball.state.p_pos, world.size)
-            else:
-                # shaped by euclidean distance of closest predator
-                rew -= 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - ball.state.p_pos)))
+        # if world.shape:  # reward can optionally be shaped (decreased reward for increased distance from agents)
+        #     if world.torus:
+        #         # shaped by toroidal distance of closest predator
+        #         rew -= 0.1 * toroidal_distance(agent.state.p_pos, ball.state.p_pos, world.size)
+        #     else:
+        #         # shaped by euclidean distance of closest predator
+        #         rew -= 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - ball.state.p_pos)))
 
         for adv in adversaries:
             if self.is_collision(ball, adv):

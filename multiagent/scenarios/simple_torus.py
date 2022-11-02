@@ -16,11 +16,6 @@ class Scenario(BaseScenario):
     def make_world(self, config):
         world = World()
         # set any world properties
-        # world.obs_type = config.obs_type
-        # if config.obs_dims is not None:
-        #     world.obs_dims = config.obs_dims
-        #     world.obs_bins = np.arange(config.obs_dims)
-        #     world.bin_scale = config.obs_dims / config.world_size
         world.n_steps = 500
         world.torus = True
         world.dim_c = 2
@@ -73,10 +68,6 @@ class Scenario(BaseScenario):
 
         # discrete actions
         world.discrete_actions = config.discrete
-
-        # at test-time, visualize potential field embedding?
-        world.visualize_embedding = config.visualize_embedding
-        world.embedding = None
 
         # make initial conditions
         self.reset_world(world)
