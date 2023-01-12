@@ -27,7 +27,7 @@ class Scenario(BaseScenario):
         world.shape = config.rew_shape
         world.predator_colors = COLOR_SCHEMES[config.pred_colors]
         world.tax = 0.0
-        world.collaborative = config.collaborative
+        world.collaborative = config.collaborative if hasattr(config, 'collaborative') else False 
 
         print('world size = {}'.format(world.size))
         print('num preds = {}'.format(config.n_preds))
