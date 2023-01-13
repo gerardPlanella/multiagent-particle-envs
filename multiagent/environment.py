@@ -1,4 +1,3 @@
-from fnmatch import translate
 import gym
 from gym import spaces
 from gym.envs.registration import EnvSpec
@@ -23,6 +22,7 @@ class MultiAgentEnv(gym.Env):
                  done_callback=None, shared_viewer=True):
         # set required vectorized gym env property
         self.world = world
+        self.env_key = world.env_key
         self.agents = self.world.policy_agents
         self.n = len(world.policy_agents)
         self.num_preds = len([agent for agent in self.agents if agent.adversary])
@@ -81,11 +81,7 @@ class MultiAgentEnv(gym.Env):
             else:
                 self.action_space.append(total_action_space[0])
             # observation space
-            obs = observation_callback(agent, self.world)
-            if isinstance(obs, tuple):
-                obs_dim = len(obs[0])
-            else:
-                obs_dim = len(obs)
+            obs_dim = len(observation_callback(agent, self.world))
             self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))
             agent.action.c = np.zeros(self.world.dim_c)
 
@@ -136,12 +132,10 @@ class MultiAgentEnv(gym.Env):
         # advance world state
         self.world.step()
 
-        # TODO: PASS ACTION TO REWARD FUNCTION
-
         # record observation for each agent
-        for i, agent in enumerate(self.agents):
+        for agent in self.agents:
             obs_n.append(self._get_obs(agent))
-            reward_n.append(self._get_reward(agent, action_n[i]))
+            reward_n.append(self._get_reward(agent))
             info_n.append(self._get_info(agent))
             done_n.append(self._get_done(agent))
 
@@ -183,10 +177,10 @@ class MultiAgentEnv(gym.Env):
         return self.done_callback(agent, self.world)
 
     # get reward for a particular agent
-    def _get_reward(self, agent, action):
+    def _get_reward(self, agent):
         if self.reward_callback is None:
             return 0.0
-        return self.reward_callback(agent, self.world, action)
+        return self.reward_callback(agent, self.world)
 
     # set env action for a particular agent
     def _set_action(self, action, agent, action_space, time=None):
@@ -282,7 +276,6 @@ class MultiAgentEnv(gym.Env):
             self.render_geoms = []
             self.render_geoms_xform = []
             self.extra_geoms = []
-            # self.extra_geoms_xform = []
             for entity in self.world.entities:
                 geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
@@ -294,29 +287,20 @@ class MultiAgentEnv(gym.Env):
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
 
-                # if self.world.visualize_embedding and isinstance(entity, Agent) and not entity.adversary:
-                #     # add embedding
-                #     angles = np.linspace(0, 2*np.pi, len(self.world.embedding), endpoint=False)
-                    
-                #     # positions
-                #     points = [0.25*np.array([np.cos(theta), np.sin(theta)]) for theta in angles]
-                #     # print(ttt)
+                if self.world.use_sensor_range and isinstance(entity, Agent) and not entity.adversary:
+                    # add sensing range to visualization
+                    geom = rendering.make_circle(self.world.sensor_range)
+                    # xform = rendering.Transform()
+                    geom.set_color(*entity.color, alpha=0.15)
+                    geom.add_attr(xform)
+                    self.extra_geoms.append(geom)
 
-                #     import matplotlib.pyplot as plt
-                #     palette = plt.get_cmap('coolwarm')
-
-                #     # add embedding points to visualization
-                #     for p, e in zip(points, self.world.embedding):
-                #         # print(p)
-                #         # print(e)
-                #         # print(palette(e))
-                #         color = palette(e)
-                #         geom = rendering.make_circle(0.05)
-                #         xform_2 = rendering.Transform(translation=tuple(p))
-                #         geom.set_color(color[0], color[1], color[2], alpha=1.0)
-                #         geom.add_attr(xform)
-                #         geom.add_attr(xform_2)
-                #         self.extra_geoms.append(geom)
+                    # add comm range to visualization
+                    geom = rendering.make_circle(self.world.comm_range)
+                    # xform = rendering.Transform()
+                    geom.set_color(*entity.color, alpha=0.25)
+                    geom.add_attr(xform)
+                    self.extra_geoms.append(geom)
 
             for wall in self.world.walls:
                 corners = ((wall.axis_pos - 0.5 * wall.width, wall.endpoints[0]),
@@ -365,34 +349,6 @@ class MultiAgentEnv(gym.Env):
                         self.render_geoms[e].set_color(0.0, 0.0, 0.0, 1.0)
                     else:
                         self.render_geoms[e].set_color(*entity.color, 0.5)
-
-
-                    # if self.world.visualize_embedding and isinstance(entity, Agent) and not entity.adversary:
-                    #     # add embedding
-                    #     angles = np.linspace(0, 2*np.pi, len(self.world.embedding), endpoint=False)
-                        
-                    #     # positions
-                    #     points = [0.25*np.array([np.cos(theta), np.sin(theta)]) for theta in angles]
-
-                    #     import matplotlib.pyplot as plt
-                    #     palette = plt.get_cmap('coolwarm')
-
-                    #     # print(self.world.embedding)
-
-                    #     # add embedding points to visualization
-                    #     for idx in range(len(self.extra_geoms)):
-                    #         # print(p)
-                    #         # print(e)
-                    #         # print(palette(e))
-                    #         color = palette(self.world.embedding[idx])
-                    #         # geom = rendering.make_circle(0.05)
-                    #         # xform_2 = rendering.Transform(translation=tuple(p))
-                    #         self.extra_geoms[idx].set_color(color[0], color[1], color[2], alpha=1.0)
-                    #         # geom.add_attr(xform)
-                    #         # geom.add_attr(xform_2)
-                    #         # self.extra_geoms.append(geom)
-
-            # for g, geom in enumerate(self.extra_geoms):
 
             # render to display or array
             results.append(self.viewers[i].render(return_rgb_array = mode=='rgb_array'))

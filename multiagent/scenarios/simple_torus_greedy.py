@@ -60,10 +60,6 @@ class Scenario(BaseScenario):
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-            # radius = np.random.uniform(0.0, 5.0)
-            # radius = 2.0
-            # init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -144,14 +140,16 @@ class Scenario(BaseScenario):
                 # TODO: IF USING REWARD SHAPING, NEED TO CHANGE TO TOROIDAL DISTANCE
                 rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
         if agent.collide:
-            capture_idxs = []
             for i, ag in enumerate(agents):
+                # check if this agent gets capture
+                if self.is_collision(ag, agent):
+                    rew += 50
+
+                # check if any agent gets capture
                 for j, adv in enumerate(adversaries):
                     if self.is_collision(ag, adv):
-                        capture_idxs.append(i)
                         ag.captured = True 
-
-            rew += 50 * len(set(capture_idxs))
+                
         return rew
 
     def terminal(self, agent, world):

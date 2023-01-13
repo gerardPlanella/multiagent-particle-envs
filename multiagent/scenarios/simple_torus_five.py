@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=6.0, n_preds=5, pred_vel=0.2, prey_vel=1.0, sensor_range=4.5, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -15,8 +15,6 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
-
-        print('world size = {}'.format(world.size))
 
         num_good_agents = 1
         self.n_preds = num_adversaries = n_preds
@@ -56,14 +54,13 @@ class Scenario(BaseScenario):
         redraw = True
         while redraw:
             # draw location for prey
-            prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
+            prey_pt = world.origin + np.random.normal(0.0, 0.05, size=2)
 
             # draw predator locations
-            init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
-            # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
-            # radius = np.random.uniform(0.0, 5.0)
-            # radius = 2.0
-            # init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
+            # init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+            angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
+            radius = np.random.uniform(0.0, 20.0)
+            init_pts = [world.origin + (np.array([math.cos(ang), math.sin(ang)])*radius) for ang in angles]
 
             # ensure predators not initialized on top of prey
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
@@ -165,29 +162,40 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # pred/prey observations
         other_pos, other_coords, viz_bits = [], [], []
+        extra_ids = []
         for other in world.agents:
             if other is agent: continue
 
-            # position of other agents
             other_pos.append(other.state.p_pos)
             other_coords.append(other.state.coords)
 
         # if agent.adversary:
-        #     other_pos = self.symmetrize(agent.id, other_pos)
-        #     other_coords = self.symmetrize(agent.id, other_coords)
-
+            # other_pos = self.symmetrize(agent.id, other_pos)
+            # other_coords = self.symmetrize(agent.id, other_coords)
+        
         obs = np.concatenate([agent.state.p_pos] + other_pos)
+
         return obs
 
     def symmetrize(self, agent_id, arr):
         # ensure symmetry in obervation space
-        # P1 --> P2, P3
-        # P2 --> P3, P1
-        # P3 --> P1, P2
-        if agent_id == 0 or agent_id == 2:
-            return arr
+        # P1 --> IN: P2, P3, P4, P5; OUT: P2, P3, P4, P5
+        # P2 --> IN: P1, P3, P4, P5; OUT: P3, P4, P5, P1
+        # P3 --> IN: P1, P2, P4, P5; OUT: P4, P5, P1, P2
+        # P4 --> IN: P1, P2, P3, P5; OUT: P5, P1, P2, P3
+        # P5 --> IN: P1, P2, P3, P4; OUT: P1, P2, P3, P4 
+        if agent_id == 1:
+            # P2
+            return arr[1:] + [arr[0]]
+        elif agent_id == 2:
+            # P3
+            return arr[2:] + arr[:2]
+        elif agent_id == 3:
+            # P4
+            return [arr[-1]] + arr[:-1]
         else:
-            return [arr[1], arr[0], arr[2]]
+            # P1, P5
+            return arr
 
         
 

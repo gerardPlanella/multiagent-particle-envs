@@ -8,7 +8,7 @@ import numpy as np
 from io import StringIO
 from gym import error, logger
 from scipy.spatial import distance
-# from multiagent.environment import MultiAgentEnv
+
 
 # ---------------------------------------------------
 # Miscellaneous
@@ -29,25 +29,6 @@ def toroidal_distance(d1, d2, size):
         dy = size - dy
 
     return np.sqrt(dx*dx + dy*dy)
-
-def toroidal_difference(d1, d2, size):
-    dx = d1[0] - d2[0]
-    dy = d1[1] - d2[1]
-
-    # adjust dx
-    if dx > size/2:
-        dx = dx - size
-    elif dx < -size/2:
-        dx = dx + size
-
-    # adjust dy
-    if dy > size/2:
-        dy = dy - size
-    elif dy < -size/2:
-        dy = dy + size
-
-
-    return np.array([dx, dy])
 
 # ---------------------------------------------------
 # Image / Video
@@ -71,11 +52,10 @@ class VideoRecorder(object):
         enabled (bool): Whether to actually record video, or just no-op (for convenience)
     """
 
-    def __init__(self, env, path=None, metadata=None, enabled=True, base_path=None, particle_env=False):
+    def __init__(self, env, path=None, metadata=None, enabled=True, base_path=None):
         modes = env.metadata.get('render.modes', [])
         self._async = env.metadata.get('semantics.async')
         self.enabled = enabled
-        self.particle_env = particle_env
 
         # Don't bother setting anything else if not enabled
         if not self.enabled:
@@ -147,8 +127,7 @@ class VideoRecorder(object):
         # multiagent particle envs returns list here instead of ndarray
         # because of option for multiple agent views
         # take just primary view for video
-        if self.particle_env:
-            frame = frame[0]
+        frame = frame[0]
 
         if frame is None:
             if self._async:
