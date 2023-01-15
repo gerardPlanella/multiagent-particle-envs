@@ -15,6 +15,7 @@ class Scenario(BaseScenario):
         world.size = size
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
+        world.collaborative = config.collaborative if hasattr(config, 'collaborative') else False
 
         print('world size = {}'.format(world.size))
 
