@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=6.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=1.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
         world.collaborative = config.collaborative if hasattr(config, 'collaborative') else False
-
+        print(f"World.Collaborative: {world.collaborative}")
         print('world size = {}'.format(world.size))
 
         num_good_agents = 1
