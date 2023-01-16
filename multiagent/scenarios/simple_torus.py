@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         world.origin = np.array([world.size/2, world.size/2])
         world.use_sensor_range = False
         world.collaborative = config.collaborative if hasattr(config, 'collaborative') else False
-        print(f"World.Collaborative: {world.collaborative}")
+        print("World.Collaborative: ",world.collaborative)
         print('world size = {}'.format(world.size))
 
         num_good_agents = 1
