@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=1.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=2.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
