@@ -45,6 +45,7 @@ class Scenario(BaseScenario):
             landmark.collide = True
             landmark.movable = False
             landmark.size = 0.1
+            landmark.active = True
             landmark.boundary = False
 
         print("Num Landmarks: " + str(len(world.landmarks)))
@@ -119,7 +120,7 @@ class Scenario(BaseScenario):
             return False
         delta_pos = agent1.state.p_pos - agent2.state.p_pos
         dist = np.sqrt(np.sum(np.square(delta_pos)))
-        dist_min = agent1.size + agent2.size
+        dist_min = agent1.size + agent2.size 
         return True if dist < dist_min else False
 
     # return all agents that are not adversaries
@@ -196,6 +197,7 @@ class Scenario(BaseScenario):
         for entity in world.landmarks:
             if not entity.boundary:
                 entity_pos.append(entity.state.p_pos - agent.state.p_pos)
+                
 
         # pred/prey observations
         other_pos, other_coords, viz_bits = [], [], []
