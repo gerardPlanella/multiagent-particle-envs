@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.utils import overlaps, toroidal_distance
 
 class Scenario(BaseScenario):
-    def make_world(self, config, size=2.0, n_preds=3, pred_vel=0.9, prey_vel=1.0, discrete=True):
+    def make_world(self, config, size=2.0, pred_vel=0.9, prey_vel=1.0, discrete=True):
         world = World()
         # set any world properties
         world.env_key = config.env
@@ -19,11 +19,11 @@ class Scenario(BaseScenario):
         print("World.Collaborative: ",world.collaborative)
         print('world size = {}'.format(world.size))
 
-        num_good_agents = 1
-        self.n_preds = num_adversaries = n_preds
-        num_agents = num_adversaries + num_good_agents
+        self.n_preys = num_preys = config.nb_prey
+        self.n_preds = num_adversaries = config.nb_agents
+        num_agents = num_adversaries + num_preys
         num_landmarks = 0
-
+        print("nb of agents : {}".format(num_agents))
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -47,8 +47,10 @@ class Scenario(BaseScenario):
 
     def reset_world(self, world):
         # random properties for agents
+        print(len(world.agents))
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
+            agent.movable = True 
             # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = np.array([0.25, 0.25, 0.25])
@@ -57,10 +59,11 @@ class Scenario(BaseScenario):
         redraw = True
         while redraw:
             # draw location for prey
-            prey_pt = world.origin + np.random.normal(0.0, 0.0001, size=2)
+            prey_pt = [world.origin + np.random.normal(0.0, 0.0001, size=2) for _ in range(self.n_preys)]
 
             # draw predator locations
             init_pts = [np.random.uniform(0.0, world.size, size=2) for _ in range(self.n_preds)]
+
             # angles = (np.linspace(0, 2*math.pi, self.n_preds, endpoint=False) + np.random.uniform(0, 2*math.pi)) % 2*math.pi
             # radius = np.random.uniform(0.0, 5.0)
             # radius = 2.0
@@ -70,7 +73,7 @@ class Scenario(BaseScenario):
             redraw = overlaps(prey_pt, init_pts, world.size, threshold=0.5)
 
         # set initial states
-        init_pts.append(prey_pt)
+        init_pts.extend(prey_pt)
         for i, agent in enumerate(world.agents):
             agent.active = True
             agent.captured = False
@@ -128,6 +131,7 @@ class Scenario(BaseScenario):
                 for a in adversaries:
                     if self.is_collision(a, agent):
                         agent.captured = True 
+                        # agent.movable = False
                         rew -= 50
                         break
             return rew
