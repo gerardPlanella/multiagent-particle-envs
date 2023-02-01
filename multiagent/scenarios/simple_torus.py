@@ -47,7 +47,6 @@ class Scenario(BaseScenario):
 
     def reset_world(self, world):
         # random properties for agents
-        print(len(world.agents))
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.85, 0.35]) if not agent.adversary else np.array([0.85, 0.35, 0.35])
             agent.movable = True 
