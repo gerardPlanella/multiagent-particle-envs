@@ -23,7 +23,7 @@ class Scenario(BaseScenario):
         self.n_preds = num_adversaries = config.nb_agents
         num_agents = num_adversaries + num_preys
         num_landmarks = 0
-        print("nb of agents : {}".format(num_agents))
+        print("nb of agents (evaders + pursuers): {}".format(num_agents))
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
