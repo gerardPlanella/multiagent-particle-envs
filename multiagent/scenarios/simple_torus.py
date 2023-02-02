@@ -20,7 +20,7 @@ class Scenario(BaseScenario):
         print('world size = {}'.format(world.size))
 
         self.n_preys = num_preys = config.nb_prey
-        self.n_preds = num_adversaries = config.nb_agents
+        self.n_preds = num_adversaries = config.nb_pred
         num_agents = num_adversaries + num_preys
         num_landmarks = 0
         print("nb of agents : {}".format(num_agents))
